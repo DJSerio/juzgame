@@ -199,7 +199,7 @@ export function situationText(pub: Pub, me: Priv, secs: number | null) {
   switch (pub.phase) {
     case 'adjective':
       if (carrete) { now = `${me.isJudge ? 'Tú escribes' : J + ' escribe'} una frase; cada uno buscará una foto en su galería que encaje.`; you = me.isJudge ? 'Escribe la frase o elige una sugerida y pulsa «Lanzar la frase».' : 'Espera y ve abriendo tu galería.'; }
-      else { now = `${me.isJudge ? 'Eliges tú' : J + ' elige'} el adjetivo de la ronda entre 3 opciones.${t}`; you = me.isJudge ? 'Toca uno y léelo en voz alta. Tienes 20 s; si se acaban, sale uno al azar.' : me.comodines.includes('golpe') ? 'Tienes Golpe de Estado: puedes elegirlo tú antes que el juez (abre 🃏 Comodines).' : me.comodines.length ? `Espera. Luego jugarás una carta; entonces podrás activar tus comodines (botón 🃏 ${me.comodines.length}).` : 'Espera. Luego jugarás una carta de tu mano.'; }
+      else { now = `${me.isJudge ? 'Eliges tú' : J + ' elige'} el adjetivo de la ronda entre 3 opciones.${t}`; you = me.isJudge ? 'Primero se barajan unos segundos; luego toca uno y léelo en voz alta. Si se acaba el tiempo, sale uno al azar.' : me.comodines.includes('golpe') ? 'Tienes Golpe de Estado: elige tú el adjetivo aquí abajo antes que el juez.' : me.comodines.length ? `Espera. Luego jugarás una carta; entonces podrás activar tus comodines (botón 🃏 ${me.comodines.length}).` : 'Espera. Luego jugarás una carta de tu mano.'; }
       break;
     case 'play':
       now = `Todos menos el juez juegan ${carrete ? 'una foto' : 'una carta'} boca abajo. Listos: ${done} de ${players.length}.${t}`;
@@ -211,7 +211,7 @@ export function situationText(pub: Pub, me: Priv, secs: number | null) {
       break;
     case 'judging':
       if (r.revealed < r.total) { now = `${me.isJudge ? 'Destapas' : J + ' destapa'} las cartas una a una (${r.revealed}/${r.total}). Son anónimas.`; you = me.isJudge ? 'Pulsa «Destapar» y lee cada carta en voz alta.' : 'Escucha. Si es la tuya, ¡disimula!'; }
-      else { now = `${me.isJudge ? 'Decides tú' : J + ' decide'} qué carta gana. Puede descartar cartas o abrir un debate.`; you = me.isJudge ? 'Toca una carta para elegirla como ganadora o descartarla.' : me.comodines.includes('apuesta') && !me.myApuesta ? 'Tienes Apuesta: ahora puedes apostar qué carta ganará.' : 'Si hay debate y te toca, defiende tu carta.'; }
+      else { now = `${me.isJudge ? 'Decides tú' : J + ' decide'} qué carta gana. Puede descartar cartas o abrir un debate.`; you = me.isJudge ? 'Lee las cartas en voz alta. Tras unos segundos de deliberación podrás elegir la ganadora (o descartar y abrir debate).' : me.comodines.includes('apuesta') && !me.myApuesta ? 'Tienes Apuesta: ahora puedes apostar qué carta ganará.' : 'Si hay debate y te toca, defiende tu carta.'; }
       break;
     case 'vote': now = 'El juez ya ha elegido. Ahora votáis la foto favorita del público (no vale votarse).'; you = me.isJudge ? 'Espera la votación.' : me.myVote ? 'Ya has votado.' : 'Toca tu foto favorita.'; break;
     case 'reveal': now = 'Resultado de la ronda. Los puntos son secretos: solo ves los tuyos.'; you = me.isJudge || me.isHost ? 'Cuando estéis listos, pulsa «Siguiente ronda».' : `Espera a que ${J} pase a la siguiente ronda.`; break;

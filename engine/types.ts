@@ -58,6 +58,9 @@ export interface ManoAjenaTask { target: string; chooser: string; deadline: numb
 
 export interface Round {
   judgeDiscarded?: boolean;
+  adjOpenAt?: number;
+  decideAt?: number;
+  spies?: { by: string; target: string }[];
   handStart?: Record<string, number>;
   no: number;
   type: 'normal' | 'carrete';

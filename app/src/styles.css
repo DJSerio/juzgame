@@ -483,3 +483,16 @@ h2 { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -.01em
 .court .bench { top: 112px; }
 .court .pile { top: 4px; }
 .court .pile { top: 34px; } .court-cap { padding: 0 40px; }
+
+/* comodines en línea */
+.combo-row { margin: 4px 0 10px; padding: 10px 12px; border-radius: 14px; background: rgba(108,77,240,.14); border: 1.5px solid rgba(155,134,255,.5); }
+.combo-row p { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.combo-row .muted { font-weight: 500; }
+.combo-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cchip { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 12px; border-radius: 12px; background: #6C4DF0; color: #fff; border: 2px solid transparent; max-width: 100%; }
+.cchip b { font-size: 15px; }
+.cchip small { font-size: 12px; opacity: .85; }
+.cchip.on { background: var(--mustard); color: var(--mustard-ink); border-color: #fff; }
+.golpe-panel { margin: 4px 0 12px; padding: 12px; border-radius: 16px; background: rgba(242,183,5,.12); border: 2px solid var(--mustard); }
+.golpe-panel p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.4; }
+.card.adj.back-adj { display: grid; place-items: center; font-family: var(--display); font-size: 40px; color: var(--mustard-ink); opacity: .5; animation: pulse 1s ease-in-out infinite; min-height: 86px; }

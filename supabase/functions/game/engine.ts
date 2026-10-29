@@ -37,6 +37,8 @@ export const WHEEL: RouletteItem[] = [
   { kind: 'mano_ajena' }, { kind: 'todo_nada' }, { kind: 'robin_hood' },
 ];
 
+export const ADJ_HEADSTART = 5000;
+export const DELIBERATION = 8000;
 const pick = <T>(arr: T[], rng: () => number): T => arr[Math.floor(rng() * arr.length)];
 function shuffle<T>(arr: T[], rng: () => number): T[] {
   const a = arr.slice();
@@ -185,6 +187,7 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
       if (r.type !== 'normal') fail('Esta ronda es de Carrete.');
       if (r.judgeId !== me.id && !isHost) fail('Elige el juez.');
       if (r.adjective !== null) fail('Ya hay adjetivo.');
+      if (ctx.now < (r.adjOpenAt ?? 0)) fail('Un momento: se están barajando los adjetivos.');
       if (a.index < 0 || a.index > 2) fail('Opción inválida.');
       r.adjective = r.adjOptions[a.index];
       startPlay(s, ctx);
@@ -227,6 +230,7 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
       const r = curRound(s, 'judging');
       if (r.judgeId !== me.id && !isHost) fail('Solo el juez.');
       r.revealed = Math.min(r.revealed + 1, r.plays.length);
+      if (r.revealed >= r.plays.length && !r.decideAt) r.decideAt = ctx.now + DELIBERATION;
       break;
     }
     case 'discard': {
@@ -491,7 +495,7 @@ function startRound(s: State, ctx: Ctx) {
   const round: Round = {
     no: s.roundNo, type, judgeId,
     adjOptions: type === 'normal' ? [drawAdj(s, ctx), drawAdj(s, ctx), drawAdj(s, ctx)] : [],
-    adjective: null, phrase: null, adjDeadline: type === 'normal' ? ctx.now + 20000 : ctx.now + 120000, playDeadline: 0, revealed: 0,
+    adjective: null, phrase: null, adjOpenAt: ctx.now + (type === 'normal' ? ADJ_HEADSTART : 0), adjDeadline: type === 'normal' ? ctx.now + ADJ_HEADSTART + 20000 : ctx.now + 120000, playDeadline: 0, revealed: 0,
     golpeBy: null, plays: [], order: [], comodinUsed: {}, skipped: [], discarded: [], debate: null,
     mordaza: null, pareja: null, apuestas: {}, votes: {}, winner: null, publicWinners: [],
     todoActive: [], manoAjena: [], events: [], gains: {},
@@ -575,6 +579,8 @@ function doPlay(s: State, me: Player, a: Extract<Action, { type: 'play' }>, ctx:
   if (c === 'carrete') { s.nextCarrete = me.id; r.events.push(`${me.name} activó Carrete para la siguiente ronda.`); }
   if (c === 'pareja') makePairs(s, me, ctx);
   if (c === 'ladron') ladron(s, me, ctx);
+  for (const sp of (r.spies ?? []).filter(x => x.target === me.id)) { const by = s.players.find(p => p.id === sp.by); if (by) revealSpy(s, by, me, ctx); }
+  r.spies = (r.spies ?? []).filter(x => x.target !== me.id);
   maybeStartJudging(s, ctx);
 }
 
@@ -641,20 +647,24 @@ function resolvePrompt(s: State, pr: Prompt, use: boolean, ctx: Ctx) {
   if (pr.kind === 'cambio') applyCambio(s, byId(s, pr.from!), target, pr.payload.wordId as number, ctx);
 }
 
+function revealSpy(s: State, me: Player, t: Player, ctx: Ctx) {
+  const r = s.round!;
+  const plays = r.plays.filter(p => p.playerId === t.id);
+  const what = r.type === 'carrete' ? 'una foto' : plays.map(pl => pl.words.map(w => wordText(ctx, w)).join(' + ')).join(' y ');
+  notify(s, me, ctx, `🕵️ ${t.name} ha jugado: ${what}`, 'espia', { photo: plays[0]?.photo });
+}
 function doTool(s: State, me: Player, a: Extract<Action, { type: 'tool' }>, ctx: Ctx) {
   const r = curRound(s, 'play');
   if (me.id === r.judgeId) fail('El juez no puede.');
-  if (r.plays.some(p => p.playerId === me.id)) fail('Ya has jugado.');
+  if (a.comodin !== 'espia' && r.plays.some(p => p.playerId === me.id)) fail('Ya has jugado.');
   if (r.type === 'carrete' && a.comodin !== 'espia') fail('No sirve en Carrete.');
   if (a.comodin === 'espia') {
     const t = byId(s, a.target ?? '');
     if (t.id === me.id || t.id === r.judgeId) fail('Elige a otro jugador.');
-    const play = r.plays.find(p => p.playerId === t.id);
-    if (!play) fail(`${t.name} todavía no ha jugado. Prueba en un momento.`);
     useComodin(s, me, 'espia');
-    const what = r.type === 'carrete' ? 'una foto' : play!.words.map(w => wordText(ctx, w)).join(' + ');
-    notify(s, me, ctx, `🕵️ ${t.name} ha jugado: ${what}`, 'espia', { photo: play!.photo });
     r.events.push(`${me.name} espió a ${t.name}.`);
+    if (r.plays.some(p => p.playerId === t.id)) revealSpy(s, me, t, ctx);
+    else { (r.spies ??= []).push({ by: me.id, target: t.id }); notify(s, me, ctx, `🕵️ ${t.name} aún no ha jugado: te lo enseñamos en cuanto juegue.`, 'round'); }
     return;
   }
   if (a.comodin === 'nuevas') {
@@ -695,6 +705,8 @@ function resolveManoAjena(s: State, targetId: string, slot: number, ctx: Ctx) {
   const w = t.hand.splice(i, 1)[0]; s.discard.push(w);
   r.plays.push({ id: id(s, 'y'), playerId: t.id, words: [{ wordId: w }], forced: true });
   notify(s, t, ctx, `Mano Ajena: juegas «${ctx.lex.words[w].w}».`);
+  for (const sp of (r.spies ?? []).filter(x => x.target === t.id)) { const by = s.players.find(p => p.id === sp.by); if (by) revealSpy(s, by, t, ctx); }
+  r.spies = (r.spies ?? []).filter(x => x.target !== t.id);
   r.events.push(`Mano Ajena: eligieron a ciegas «${ctx.lex.words[w].w}» para ${t.name}.`);
   maybeStartJudging(s, ctx);
 }
@@ -733,6 +745,7 @@ function pickWinner(s: State, me: Player, isHost: boolean, playId: string, ctx: 
   const r = curRound(s, 'judging');
   if (r.judgeId !== me.id && !isHost) fail('Solo el juez.');
   if (r.revealed < r.plays.length) fail('Destapa primero todas las cartas.');
+  if (ctx.now < (r.decideAt ?? 0) - 300) fail('Espera unos segundos: todos tienen que poder leer las cartas.');
   const play = r.plays.find(p => p.id === playId) ?? fail('No existe.');
   r.winner = play.id; r.debate = null;
   if (r.type === 'carrete' && new Set(r.plays.map(p => p.playerId)).size >= 2) { s.phase = 'vote'; return; }
@@ -963,7 +976,7 @@ export function publicView(s: State, ctx: Pick<Ctx, 'lex'>) {
     round: r ? {
       no: r.no, type: r.type, judgeId: r.judgeId,
       adjective: adj ? { a: adj.a, s: adj.s } : null, phrase: r.phrase,
-      adjDeadline: r.adjDeadline, golpe: !!r.golpeBy,
+      adjDeadline: r.adjDeadline, adjOpenAt: r.adjOpenAt ?? 0, decideAt: r.decideAt ?? 0, golpe: !!r.golpeBy,
       plays: showPlays ? r.order.map((pid, i) => {
         const p = playMap.get(pid)!;
         if (s.phase === 'judging' && i >= r.revealed) return { id: p.id, hidden: true as const, words: [] as { w: string; d: string; custom: boolean; id?: number }[], photo: undefined as string | undefined };

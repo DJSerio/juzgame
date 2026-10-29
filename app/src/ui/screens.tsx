@@ -4,7 +4,7 @@ import { act, createGame, joinGame, peekGame, savedName, uploadPhoto, toast } fr
 import { Avatar, AvatarPicker } from './avatar';
 import { APP_NAME, DEMO } from '../config';
 import type { Comodin } from '../../../engine/types';
-import { AdjCard, CardBack, Chip, COMODIN, cLabel, ComodinReminder, Courtroom, Sheet, Wheel, WordCard, nameOf, setActive, useActive, useApp, useToolEvent, WheelLegend } from './common';
+import { AdjCard, CardBack, Chip, COMODIN, cLabel, availability, useNow, ComodinReminder, Courtroom, Sheet, Wheel, WordCard, nameOf, setActive, useActive, useApp, useToolEvent, WheelLegend } from './common';
 
 /* ================= INICIO ================= */
 export function Logo({ small }: { small?: boolean }) {
@@ -226,6 +226,7 @@ export function Adjective() {
   const [phrase, setPhrase] = useState('');
   const [golpeOpen, setGolpeOpen] = useState(false);
   useToolEvent('golpe', () => setGolpeOpen(true));
+  const now = useNow(500);
   if (r.type === 'carrete') {
     return me.isJudge ? (
       <div>
@@ -237,17 +238,27 @@ export function Adjective() {
       </div>
     ) : <><Courtroom /><Waiting title="📸 Ronda de Carrete" text={`${nameOf(pub, r.judgeId)} está escribiendo la frase. Ve abriendo tu galería.`} /></>;
   }
+  const wait = Math.ceil(((r.adjOpenAt ?? 0) - now) / 1000);
   if (me.isJudge) return (
     <div>
       <Courtroom />
-      <h2 className="h-sm">Elige el adjetivo y léelo en voz alta</h2>
-      <div className="stack">{me.adjOptions?.map((a, i) => <AdjCard key={a.a} a={a.a} s={a.s} onClick={() => act({ type: 'chooseAdjective', index: i })} />)}</div>
+      <h2 className="h-sm">{wait > 0 ? `Barajando los adjetivos… ${wait}` : 'Elige el adjetivo y léelo en voz alta'}</h2>
+      <div className={`stack${wait > 0 ? ' shuffling' : ''}`}>{me.adjOptions?.map((a, i) => wait > 0
+        ? <div key={a.a} className="card adj back-adj">?</div>
+        : <AdjCard key={a.a} a={a.a} s={a.s} onClick={() => act({ type: 'chooseAdjective', index: i })} />)}</div>
     </div>
   );
+  const canGolpe = me.comodines.includes('golpe') && !me.usedComodin && !!me.adjOptions;
   return (
     <div>
+      {canGolpe ? (
+        <div className="golpe-panel">
+          <p><b>👑 Tienes Golpe de Estado.</b> Si quieres, elige tú el adjetivo ahora, antes que el juez{wait > 0 ? ` (te quedan ${wait} s de ventaja)` : ''}. Nadie sabrá que has sido tú.</p>
+          <div className="stack">{me.adjOptions!.map((a, i) => <AdjCard key={a.a} a={a.a} s={a.s} onClick={() => act({ type: 'golpe', index: i })} />)}</div>
+        </div>
+      ) : null}
       <Courtroom />
-      <ComodinReminder />
+      {!canGolpe && <ComodinReminder />}
       <h2 className="h-sm">Tus palabras · ve pensando</h2>
       <Hand cards={me.hand} selected={[]} onToggle={() => {}} readOnly />
       {golpeOpen && me.adjOptions && (
@@ -325,6 +336,7 @@ export function Play() {
   if (me.myPlayId || pub.players.find(p => p.id === me.id)?.skipped) return (
     <div>
       <Courtroom />
+      {me.myPlayId && me.comodines.includes('espia') && !me.usedComodin && <SpyAfter />}
       <Waiting title={me.myPlayId ? 'Carta jugada' : 'Esta ronda no juegas'} text={me.myPlayId ? (me.usedComodin ? `Con ${cLabel(me.usedComodin)}. ` : '') + 'Esperando al resto…' : 'Esperando al resto…'} />
       <PlayedList />
     </div>
@@ -351,12 +363,12 @@ export function Play() {
     <div>
       <Courtroom />
       {me.todoActive && <div className="banner warn">Todo o Nada: si ganas +2, si no −1.</div>}
-      {!active && <ComodinReminder />}
+      {!active && <ComboRow active={active} />}
       {active ? (
         <div className="active-combo">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <Chip c={active} on />
-            <button className="badge" onClick={() => setActive(null, pub.roundNo)}>Quitar</button>
+            <button className="badge" onClick={() => setActive(null, pub.roundNo)}>Quitar comodín</button>
           </div>
           <p style={{ margin: '8px 0 6px' }}>{COMODIN[active].desc}</p>
           <ol className="steps">{COMODIN[active].steps.map((s, i) => <li key={s} className={i < stepNow ? 'done' : i === stepNow ? 'now' : ''}>{s}</li>)}</ol>
@@ -367,7 +379,7 @@ export function Play() {
 
       {active === 'espia' ? (
         <div className="stack" style={{ marginBottom: 14 }}>
-          {others.map(p => <button key={p.id} className="btn" disabled={!p.played} onClick={() => { act({ type: 'tool', comodin: 'espia', target: p.id }); setActive(null, pub.roundNo); }}>🕵️ Espiar a {p.name}{p.played ? '' : ' (aún no ha jugado)'}</button>)}
+          {others.map(p => <button key={p.id} className="btn" onClick={() => { act({ type: 'tool', comodin: 'espia', target: p.id }); setActive(null, pub.roundNo); }}>🕵️ Espiar a {p.name}<small style={{ display: 'block', fontWeight: 500, opacity: .75 }}>{p.played ? 'Ya ha jugado: lo verás al momento' : 'Aún no ha jugado: te avisamos en cuanto juegue'}</small></button>)}
         </div>
       ) : carrete ? (
         <div className="stack">
@@ -389,6 +401,36 @@ export function Play() {
               {active ? `Jugar con ${COMODIN[active].name}` : carrete ? 'Enviar foto' : sel.length ? `Jugar «${me.hand[sel[0]]?.w}»` : 'Toca una carta'}
             </button>}
       </div></div>
+    </div>
+  );
+}
+
+const PLAY_LIKE = new Set(['play', 'tool']);
+function ComboRow({ active }: { active: Comodin | null }) {
+  const { snap } = useApp();
+  const pub = snap!.public, me = snap!.private!;
+  if (me.usedComodin) return null;
+  const list = me.comodines.filter(c => PLAY_LIKE.has(COMODIN[c].when) && availability(c, pub, me).can);
+  if (!list.length) return null;
+  return (
+    <div className="combo-row">
+      <p>¿Quieres usar un comodín en esta jugada? <span className="muted">Tócalo antes de elegir carta.</span></p>
+      <div className="combo-chips">{list.map((c, i) => (
+        <button key={c + i} className={`cchip${active === c ? ' on' : ''}`} onClick={() => setActive(active === c ? null : c, pub.roundNo)}>
+          <b>{cLabel(c)}</b><small>{COMODIN[c].good}</small>
+        </button>
+      ))}</div>
+    </div>
+  );
+}
+function SpyAfter() {
+  const { snap } = useApp();
+  const pub = snap!.public, me = snap!.private!; const r = pub.round!;
+  const others = pub.players.filter(p => !p.removed && p.id !== me.id && p.id !== r.judgeId);
+  return (
+    <div className="combo-row">
+      <p><b>🕵️ Aún puedes usar Espía.</b> Elige a quién:</p>
+      <div className="combo-chips">{others.map(p => <button key={p.id} className="cchip" onClick={() => act({ type: 'tool', comodin: 'espia', target: p.id })}><b>{p.name}</b><small>{p.played ? 'Ya ha jugado' : 'Te avisamos cuando juegue'}</small></button>)}</div>
     </div>
   );
 }
@@ -422,6 +464,8 @@ export function Judging() {
   const [briberyShown, setBriberyShown] = useState(false);
   const [apostando, setApostando] = useState(false);
   useToolEvent('apuesta', () => setApostando(true));
+  const nowJ = useNow(500);
+  const delib = Math.max(0, Math.ceil(((r.decideAt ?? 0) - nowJ) / 1000));
   const plays = r.plays;
   const allOpen = r.revealed >= r.total;
   const label = (id: string) => { const p = plays.find(x => x.id === id); return p ? (p.photo ? 'una foto' : p.words.map(w => w.w).join(' + ')) : '?'; };
@@ -481,7 +525,7 @@ export function Judging() {
       {focus && canJudge && (
         <Sheet title={label(focus)} onClose={() => setFocus(null)}>
           <div className="stack">
-            <button className="btn primary block" onClick={() => { act({ type: 'pickWinner', playId: focus }); setFocus(null); }}>🏆 Esta es la ganadora</button>
+            <button className="btn primary block" disabled={delib > 0} onClick={() => { act({ type: 'pickWinner', playId: focus }); setFocus(null); }}>{delib > 0 ? `Deliberando… podrás elegir en ${delib} s` : '🏆 Esta es la ganadora'}</button>
             <button className="btn block" onClick={() => { act({ type: 'discard', playId: focus }); setFocus(null); }}>{r.discarded.includes(focus) ? 'Recuperar' : 'Descartar'}</button>
           </div>
         </Sheet>
@@ -495,6 +539,7 @@ export function Judging() {
           <button className="btn primary" disabled={debatePick.length < 2} onClick={() => { act({ type: 'debate', playIds: debatePick }); setDebatePick(null); }}>Empezar debate</button>
         </>}
         {apostando && <button className="btn ghost" onClick={() => setApostando(false)}>Cancelar apuesta</button>}
+        {!canJudge && !apostando && allOpen && me.comodines.includes('apuesta') && !me.myApuesta && !me.usedComodin && <button className="btn primary" onClick={() => setApostando(true)}>🎲 Usar Apuesta: ¿cuál ganará?</button>}
         {!me.isJudge && me.isHost && !DEMO && <button className="btn ghost" onClick={() => setActAsHost(a => !a)}>{actAsHost ? 'Dejar de actuar como juez' : 'Actuar como juez'}</button>}
       </div></div>
     </div>
