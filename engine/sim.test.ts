@@ -101,7 +101,8 @@ function run(seed: number, nPlayers: number, cfg: Partial<State['config']>) {
     if (s.config.handMode === 'refill' && s.phase === 'adjective') for (const p of s.players) if (!p.removed && p.hand.length !== 7) throw new Error(`mano de ${p.hand.length} seed ${seed}`);
     if (s.config.handMode === 'deplete' && s.phase === 'adjective' && s.round?.type === 'normal' && !s.players.some(p => p.removed)) { const L = new Set(s.players.map(p => p.hand.length)); if (L.size > 1) throw new Error(`manos desiguales ${[...L]} seed ${seed} ronda ${s.roundNo}`); }
   }
-  while (s.reveal!.shown < s.reveal!.ranking.length) act(uids[0], { type: 'revealNext' });
+  for (const u of uids) { try { act(u, { type: 'endReady' }); } catch { /* jugador retirado */ } }
+  if (!s.reveal!.startedAt) act(uids[0], { type: 'endStart' });
   const pub = publicView(s, { lex });
   if (!pub.history) throw new Error('sin cronología');
   return { rounds: s.history.length, pts: s.reveal!.ranking.map(r => r.points), stats };
