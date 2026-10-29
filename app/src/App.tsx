@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEMO } from './config';
 import { useApp, PlayersStrip, Topbar, StatusBanners, Notices, ShieldPrompt, ReportVote, Menu, Rules, RoundSteps, RouletteResult } from './ui/common';
-import { Home, Lobby, Order, OrderRanking, Roulette, Adjective, Play, Judging, Vote, Reveal, End, WaitingReclaim } from './ui/screens';
+import { Home, Lobby, Order, OrderRanking, Roulette, Adjective, Play, Judging, Vote, Reveal, WaitingReclaim } from './ui/screens';
+import { End } from './ui/endgame';
 import { DemoBar, DemoMenuExtra, DemoSetup } from './ui/demoui';
 
 function useMyTurnBuzz() {

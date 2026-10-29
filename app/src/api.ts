@@ -85,6 +85,11 @@ export async function createGame(name: string, avatar: string) {
   } catch (e) { set({ error: (e as Error).message }); } finally { set({ busy: false }); }
 }
 
+export interface LeagueGame { created_at: string; code: string; players: { name: string; avatar: string; points: number; pos: number; league: number }[] }
+export async function fetchLeague(): Promise<LeagueGame[]> {
+  try { const r = await call({ op: 'league' }); return r.games ?? []; } catch { return []; }
+}
+
 export async function peekGame(code: string): Promise<{ taken: string[] } | null> {
   set({ busy: true, error: null });
   try { const s: Snapshot = await call({ op: 'state', code: code.trim().toUpperCase() }); return { taken: s.public.players.filter(p => !p.removed).map(p => p.avatar).filter(Boolean) }; }

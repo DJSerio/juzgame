@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { apply, newGame, privateView, publicView, playerForUid, GameError, type Ctx, type Lexicon } from './engine.ts';
+import { apply, newGame, privateView, publicView, playerForUid, leagueEntry, GameError, type Ctx, type Lexicon } from './engine.ts';
 import type { Action, State } from './types.ts';
 
 const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
@@ -74,6 +74,11 @@ Deno.serve(async (req) => {
       return json({ error: 'No se pudo crear la sala.' }, 500);
     }
 
+    if (body.op === 'league') {
+      const { data, error } = await db.from('league').select('created_at, code, players').order('created_at', { ascending: false }).limit(300);
+      if (error) throw error;
+      return json({ games: data });
+    }
     if (body.op === 'state') {
       const g = await load(String(body.code ?? ''));
       return json(views(g.state, token, g.version));
@@ -109,7 +114,12 @@ Deno.serve(async (req) => {
           if (action.type === 'vote' && next.phase === 'vote') prev = g.prev; // voto parcial: conservar
           if (action.type === 'next') prev = null;
         }
-        if (await save(g.id, next, prev, g.version)) return json(views(next, token, g.version + 1));
+        const toLeague = next.phase === 'end' && !next.leagueSaved && next.history.length > 0;
+        if (toLeague) next.leagueSaved = true;
+        if (await save(g.id, next, prev, g.version)) {
+          if (toLeague) await db.from('league').insert({ code: next.code, players: leagueEntry(next) });
+          return json(views(next, token, g.version + 1));
+        }
         await new Promise(r => setTimeout(r, 30 + Math.random() * 120));
       }
       return json({ error: 'Mucho tráfico, inténtalo otra vez.' }, 409);

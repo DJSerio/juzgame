@@ -37,6 +37,12 @@ export const WHEEL: RouletteItem[] = [
   { kind: 'mano_ajena' }, { kind: 'todo_nada' }, { kind: 'robin_hood' },
 ];
 
+/** Liga: puntos por posición (con empates, comparten puesto). */
+export const LEAGUE_POINTS = [10, 7, 5, 3, 2, 1];
+export function leagueEntry(s: State) {
+  const r = [...(s.reveal?.ranking ?? [])].sort((a, b) => b.points - a.points);
+  return r.map(p => { const pos = 1 + r.filter(x => x.points > p.points).length; return { name: p.name, avatar: p.avatar ?? '', points: p.points, pos, league: LEAGUE_POINTS[pos - 1] ?? 0 }; });
+}
 export const ADJ_HEADSTART = 5000;
 export const DELIBERATION = 8000;
 const pick = <T>(arr: T[], rng: () => number): T => arr[Math.floor(rng() * arr.length)];
@@ -358,6 +364,18 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
       break;
     }
     case 'rejectReclaim': { host(); s.reclaims = s.reclaims.filter(r => r.id !== a.requestId); break; }
+    case 'endReady': {
+      if (s.phase !== 'end' || !s.reveal) fail('Ahora no.');
+      const rv = s.reveal; rv.ready ??= [];
+      if (!rv.ready.includes(me.id)) rv.ready.push(me.id);
+      if (!rv.startedAt && active(s).every(p => rv.ready!.includes(p.id))) rv.startedAt = ctx.now + 800;
+      break;
+    }
+    case 'endStart': {
+      host(); if (s.phase !== 'end' || !s.reveal) fail('Ahora no.');
+      if (!s.reveal.startedAt) s.reveal.startedAt = ctx.now + 800;
+      break;
+    }
     case 'revealNext': {
       host(); if (s.phase !== 'end' || !s.reveal) fail('Ahora no.');
       s.reveal.shown = Math.min(s.reveal.shown + 1, s.reveal.ranking.length); break;
@@ -861,8 +879,8 @@ function advance(s: State, ctx: Ctx) {
 
 function endGame(s: State) {
   s.round = null; s.phase = 'end';
-  const ranking = active(s).map(p => ({ id: p.id, name: p.name, points: p.points })).sort((a, b) => a.points - b.points);
-  s.reveal = { ranking, shown: 0 };
+  const ranking = active(s).map(p => ({ id: p.id, name: p.name, avatar: p.avatar, points: p.points })).sort((a, b) => a.points - b.points);
+  s.reveal = { ranking, shown: 0, ready: [], startedAt: null };
 }
 
 function passJudge(s: State, ctx: Ctx) {
@@ -995,8 +1013,8 @@ export function publicView(s: State, ctx: Pick<Ctx, 'lex'>) {
     reclaims: s.reclaims.map(q => ({ id: q.id, name: q.name })),
     feed: s.feed.slice(-8),
     nextCarrete: !!s.nextCarrete,
-    reveal: s.reveal ? { total: s.reveal.ranking.length, shown: s.reveal.shown, ranking: s.reveal.ranking.slice(0, s.reveal.shown) } : null,
-    history: s.phase === 'end' && s.reveal && s.reveal.shown >= s.reveal.ranking.length ? s.history : null,
+    reveal: s.reveal ? { total: s.reveal.ranking.length, shown: s.reveal.shown, ready: s.reveal.ready ?? [], startedAt: s.reveal.startedAt ?? null, ranking: s.reveal.startedAt ? s.reveal.ranking : [] } : null,
+    history: s.phase === 'end' && s.reveal && s.reveal.startedAt ? s.history : null,
   };
 }
 

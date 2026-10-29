@@ -61,7 +61,7 @@ export function needsAction(token: string): string | null {
     case 'judging': return me.isJudge ? 'Juzgar' : null;
     case 'vote': return !me.isJudge && me.myPlayId && !me.myVote ? 'Votar' : null;
     case 'reveal': return me.isJudge ? 'Siguiente' : null;
-    case 'end': return me.isHost && pub.reveal && pub.reveal.shown < pub.reveal.total ? 'Revelar' : null;
+    case 'end': return pub.reveal && !pub.reveal.startedAt && !pub.reveal.ready.includes(me.id) ? 'Listo' : null;
   }
   return null;
 }
@@ -106,6 +106,7 @@ function botAct(token: string): Action | null {
       return opts.length ? { type: 'vote', playId: pick(opts).id } : null;
     }
     case 'reveal': return me.isJudge ? { type: 'next' } : null;
+    case 'end': return pub.reveal && !pub.reveal.startedAt && !pub.reveal.ready.includes(me.id) ? { type: 'endReady' } : null;
   }
   return null;
 }

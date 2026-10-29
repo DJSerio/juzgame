@@ -1,5 +1,5 @@
 // Servidor local (demo): mismo protocolo que la Edge Function, todo en el navegador.
-import { apply, newGame, privateView, publicView, playerForUid, GameError, type Ctx, type Lexicon } from '../../engine/engine';
+import { apply, newGame, privateView, publicView, playerForUid, leagueEntry, GameError, type Ctx, type Lexicon } from '../../engine/engine';
 import type { State } from '../../engine/types';
 import words from '../../data/words.json';
 import adjs from '../../data/adjectives.json';
@@ -25,6 +25,7 @@ export function localHandle(b: Record<string, any>): { status: number; body: any
   const t = String(b.token);
   const ctx: Ctx = { now: Date.now(), rng: Math.random, lex, uid: t };
   try {
+    if (b.op === 'league') { let games = []; try { games = JSON.parse(localStorage.getItem('lp.demo.league') ?? '[]'); } catch { /* */ } return { status: 200, body: { games } }; }
     if (b.op === 'create') {
       const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
       const code = Array.from({ length: 4 }, () => L[Math.floor(Math.random() * L.length)]).join('');
@@ -44,6 +45,10 @@ export function localHandle(b: Record<string, any>): { status: number; body: any
       const before = JSON.stringify(g.s);
       const next = apply(JSON.parse(before), b.action, ctx, b.actionId);
       if (JSON.stringify(next) !== before) {
+        if (next.phase === 'end' && !next.leagueSaved && next.history.length > 0) {
+          next.leagueSaved = true;
+          try { const L = JSON.parse(localStorage.getItem('lp.demo.league') ?? '[]'); L.unshift({ created_at: new Date().toISOString(), code: next.code, players: leagueEntry(next) }); localStorage.setItem('lp.demo.league', JSON.stringify(L.slice(0, 300))); } catch { /* */ }
+        }
         if (b.action.type === 'pickWinner') g.prev = JSON.parse(before);
         if (b.action.type === 'next') g.prev = null;
         g.s = next; g.v++; emit();

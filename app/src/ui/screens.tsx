@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { act, createGame, joinGame, peekGame, savedName, uploadPhoto, toast } from '../api';
 import { Avatar, AvatarPicker } from './avatar';
+import { League } from './endgame';
 import { APP_NAME, DEMO } from '../config';
 import type { Comodin } from '../../../engine/types';
 import { AdjCard, CardBack, Chip, COMODIN, cLabel, availability, useNow, ComodinReminder, Courtroom, Sheet, Wheel, WordCard, nameOf, setActive, useActive, useApp, useToolEvent, WheelLegend } from './common';
@@ -63,6 +64,7 @@ export function Home() {
       <button className="btn primary block" style={{ marginTop: 12 }} disabled={!ok || busy} onClick={next}>
         {busy ? <span className="spin">◌</span> : 'Siguiente: elige personaje'}
       </button>
+      <League />
     </main>
   );
 }
@@ -607,51 +609,3 @@ export function Reveal() {
 }
 
 /* ================= FINAL ================= */
-export function End() {
-  const { snap } = useApp();
-  const pub = snap!.public, me = snap!.private!;
-  const rv = pub.reveal!;
-  const shownRanking = useMemo(() => rv.ranking, [rv.ranking]);
-  const done = rv.shown >= rv.total;
-  const posOf = (i: number) => rv.total - i;
-  return (
-    <div>
-      <h2>{done ? '¡Fin de la partida!' : 'Resultados'}</h2>
-      {!done && <p className="lead">Se revelan del último al primero.</p>}
-      <div style={{ display: 'flex', flexDirection: 'column-reverse' }}>
-        {shownRanking.map((p, i) => (
-          <div key={p.id} className={`rank${posOf(i) === 1 ? ' first' : ''}`}>
-            <span className="pos">{posOf(i)}º</span><span className="n">{p.name}</span><span style={{ fontWeight: 800, fontSize: 20 }}>{p.points}</span>
-          </div>
-        ))}
-      </div>
-      {!done && me.isHost && <div className="dock"><div className="inner"><button className="btn primary" onClick={() => act({ type: 'revealNext' })}>{rv.shown === 0 ? 'Revelar el último' : rv.shown === rv.total - 1 ? '🥁 Revelar al ganador' : 'Siguiente'}</button></div></div>}
-      {!done && !me.isHost && <p className="muted">{nameOf(pub, pub.hostId)} va revelando…</p>}
-      {done && pub.history && <Chronology history={pub.history} />}
-    </div>
-  );
-}
-
-function Chronology({ history }: { history: NonNullable<ReturnType<typeof useApp>['snap']>['public']['history'] }) {
-  return (
-    <>
-      <h2>Lo que pasó de verdad</h2>
-      <div className="timeline">
-        {history!.map(h => (
-          <div key={h.no} className="tl-item">
-            <h4>Ronda {h.no} · {h.type === 'carrete' ? `📸 «${h.phrase}»` : h.adjective}{h.final ? ' · final' : ''}</h4>
-            <p className="muted" style={{ margin: '0 0 6px' }}>Juez: {h.judge}{h.golpeBy ? ` · 👑 golpe de Estado de ${h.golpeBy}` : ''}</p>
-            {h.plays.map((p, i) => (
-              <div key={i} className={`tl-play${p.winner ? ' win' : ''}`}>
-                <span>{p.winner ? '🏆' : '·'}</span>
-                <span><b>{p.player}</b>: {p.photo ? <a href={p.photo} target="_blank" rel="noreferrer">foto</a> : p.words.join(' + ')}{p.comodin ? ` (${COMODIN[p.comodin].icon} ${COMODIN[p.comodin].name})` : ''}{p.votes ? ` · ${p.votes} voto${p.votes > 1 ? 's' : ''}` : ''}</span>
-              </div>
-            ))}
-            {Object.keys(h.gains).length > 0 && <p className="muted" style={{ margin: '6px 0 0' }}>Puntos: {Object.entries(h.gains).map(([n, g]) => `${n} ${g > 0 ? '+' : ''}${g}`).join(', ')}</p>}
-            {h.events.length > 0 && <ul>{h.events.map((e, i) => <li key={i}>{e}</li>)}</ul>}
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}

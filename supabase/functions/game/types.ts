@@ -135,7 +135,8 @@ export interface State {
   history: HistoryEntry[];
   feed: string[];                 // eventos públicos recientes (anónimos)
   orderPick: { cards: number[]; picks: Record<string, number> } | null;
-  reveal: { ranking: { id: string; name: string; points: number }[]; shown: number } | null;
+  reveal: { ranking: { id: string; name: string; avatar?: string; points: number }[]; shown: number; ready?: string[]; startedAt?: number | null } | null;
+  leagueSaved?: boolean;
   processed: string[];
   seq: number;
   createdAt: number;
@@ -182,4 +183,6 @@ export type Action =
   | { type: 'approveReclaim'; requestId: string; playerId: string }
   | { type: 'rejectReclaim'; requestId: string }
   | { type: 'revealNext' }
+  | { type: 'endReady' }
+  | { type: 'endStart' }
   | { type: 'dismissNotice'; noticeId: string };

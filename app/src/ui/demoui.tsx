@@ -4,6 +4,7 @@ import { DEFAULT_NAMES, endDemo, needsAction, resumeDemo, setAuto, startDemo, sw
 import { leaveRoom } from '../api';
 import { ConfirmButton } from './common';
 import { AvatarPicker } from './avatar';
+import { League } from './endgame';
 
 export function DemoSetup() {
   const [n, setN] = useState(6);
@@ -46,6 +47,8 @@ export function DemoSetup() {
         <button className={auto ? 'on' : ''} onClick={() => setA(true)}>Los demás juegan solos<small>Tú solo juegas tu parte</small></button>
         <button className={!auto ? 'on' : ''} onClick={() => setA(false)}>Yo controlo a todos<small>Cambias de jugador</small></button>
       </div>
+      <League />
+      <div style={{ height: 80 }} />
       <div className="dock"><div className="inner">
         <button className="btn primary" disabled={names.slice(0, n).some(x => !x.trim()) || new Set(names.slice(0, n).map(x => x.trim().toLowerCase())).size < n} onClick={() => setPicking(0)}>Siguiente: elegir personaje</button>
       </div></div>
