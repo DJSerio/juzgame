@@ -1,0 +1,23 @@
+<g id="judge-layer">
+  <!-- toga abierta -->
+  <path d="M44 240 C46 212 56 194 78 186 L94 188 L88 240 Z" fill="#1C1C24" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M156 240 C154 212 144 194 122 186 L106 188 L112 240 Z" fill="#1C1C24" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M90 180 L100 190 L110 180 L109 198 L100 192 L91 198 Z" fill="#FFFDF6" stroke="#1F1B16" stroke-width="3" stroke-linejoin="round"/>
+  <!-- peluca: casquete + tirabuzones, algo torcida -->
+  <g transform="rotate(-5 100 80)">
+  <path d="M50 100 C40 40 70 18 102 20 C134 18 162 40 152 100 C146 74 136 60 124 56 C108 48 92 48 76 56 C64 62 54 74 50 100 Z" fill="#F2EDE3" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <g fill="#F2EDE3" stroke="#1F1B16" stroke-width="4">
+    <circle cx="70" cy="34" r="11"/><circle cx="90" cy="25" r="11"/><circle cx="112" cy="25" r="11"/><circle cx="132" cy="34" r="11"/>
+    <circle cx="46" cy="94" r="11"/><circle cx="44" cy="116" r="11"/><circle cx="46" cy="138" r="11"/><circle cx="52" cy="158" r="10"/>
+    <circle cx="156" cy="94" r="11"/><circle cx="158" cy="116" r="11"/><circle cx="156" cy="138" r="11"/><circle cx="150" cy="158" r="10"/>
+  </g>
+  </g>
+  <!-- mazo en alto -->
+  <g transform="rotate(-28 40 200)">
+    <rect x="34" y="166" width="9" height="50" rx="3" fill="#8A5A32" stroke="#1F1B16" stroke-width="4"/>
+    <rect x="17" y="148" width="43" height="23" rx="6" fill="#A86E3E" stroke="#1F1B16" stroke-width="4.5"/>
+    <path d="M26 148 v23 M51 148 v23" stroke="#1F1B16" stroke-width="3"/>
+  </g>
+  <circle cx="54" cy="218" r="10" fill="#E9A77C" stroke="#1F1B16" stroke-width="4.5"/>
+  <path d="M14 140 l-8 -6 M10 156 l-10 0 M22 128 l-4 -9" stroke="#F2B705" stroke-width="4" stroke-linecap="round"/>
+</g>

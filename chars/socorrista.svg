@@ -1,0 +1,47 @@
+<g id="char-socorrista">
+  <!-- cuerpo pequeño -->
+  <path d="M52 240 C54 214 62 196 78 190 L122 190 C138 196 146 214 148 240 Z" fill="#E9A77C" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M70 240 L72 202 C76 195 80 192 84 191 C90 202 110 202 116 191 C120 192 124 195 128 202 L130 240 Z" fill="#E0412B" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M100 214 v18 M91 223 h18" stroke="#FFFDF6" stroke-width="6" stroke-linecap="round"/>
+  <!-- flotador -->
+  <g transform="translate(150 222) rotate(14)"><ellipse rx="25" ry="21" fill="#F07A1E" stroke="#1F1B16" stroke-width="4.5"/><ellipse rx="10" ry="8" fill="#1B4A39" stroke="#1F1B16" stroke-width="4"/>
+  <path d="M-18 -15 l7 6 M18 -15 l-7 6 M-18 15 l7 -6 M18 15 l-7 -6" stroke="#FFFDF6" stroke-width="7"/></g>
+  <circle cx="132" cy="226" r="9" fill="#E9A77C" stroke="#1F1B16" stroke-width="4"/>
+  <!-- orejas -->
+  <path d="M50 102 C36 94 34 124 50 124 Z" fill="#E9A77C" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M152 100 C168 92 170 122 152 122 Z" fill="#E9A77C" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <!-- cabeza: mandíbula marcada -->
+  <path d="M100 30 C136 30 154 56 154 90 C154 126 146 160 112 172 C104 175 96 175 88 172 C56 160 46 128 46 92 C46 56 66 30 100 30 Z" fill="#E9A77C" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <ellipse cx="68" cy="128" rx="11" ry="6" fill="#E5604A" opacity=".45"/>
+  <ellipse cx="134" cy="126" rx="10" ry="6" fill="#E5604A" opacity=".45"/>
+  <!-- tupé -->
+  <path d="M56 74 C50 40 78 22 104 26 C126 20 152 38 150 70 C140 54 128 50 116 54 C110 44 98 42 90 50 C78 46 64 56 56 74 Z" fill="#3B2414" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M92 32 C88 12 112 4 116 20 C124 12 136 20 126 32" fill="#3B2414" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <!-- gafas de sol en la frente -->
+  <g transform="rotate(-6 100 62)">
+    <rect x="66" y="54" width="30" height="16" rx="7" fill="#1F1B16"/><rect x="104" y="54" width="30" height="16" rx="7" fill="#1F1B16"/>
+    <path d="M95 60 h10" stroke="#1F1B16" stroke-width="4.5"/>
+    <path d="M72 58 l9 0 M110 58 l9 0" stroke="#7FD3F0" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- cejas: una levantada, chulería -->
+  <path d="M64 84 q12 -4 24 2" fill="none" stroke="#1F1B16" stroke-width="6" stroke-linecap="round"/>
+  <path d="M112 80 q12 -12 26 -6" fill="none" stroke="#1F1B16" stroke-width="6" stroke-linecap="round"/>
+  <!-- ojos con párpado, mirando de lado -->
+  <ellipse cx="77" cy="100" rx="12" ry="11" fill="#FFFDF6" stroke="#1F1B16" stroke-width="4"/>
+  <ellipse cx="124" cy="98" rx="12" ry="12" fill="#FFFDF6" stroke="#1F1B16" stroke-width="4"/>
+  <circle cx="83" cy="102" r="5.5" fill="#1F1B16"/><circle cx="130" cy="100" r="5.5" fill="#1F1B16"/>
+  <circle cx="85" cy="100" r="1.8" fill="#FFFDF6"/><circle cx="132" cy="98" r="1.8" fill="#FFFDF6"/>
+  <path d="M64 96 C70 88 86 88 90 96 L90 92 C84 86 68 86 64 96 Z" fill="#E9A77C" stroke="#1F1B16" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- nariz con crema solar -->
+  <path d="M98 104 C88 110 88 128 100 130 C112 131 114 112 104 104 Z" fill="#F0B08A" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M92 118 C94 112 104 111 107 118 C105 124 95 125 92 118 Z" fill="#FFFFFF"/>
+  <!-- sonrisa de medio lado -->
+  <path d="M78 144 C94 150 114 150 128 136 C126 152 112 160 100 158 C90 157 82 152 78 144 Z" fill="#6E1D14" stroke="#1F1B16" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M86 147 C98 151 112 150 124 141 L122 147 C112 153 98 154 88 151 Z" fill="#FFFDF6"/>
+  <path d="M128 136 q6 -2 8 -8" fill="none" stroke="#1F1B16" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- barbilla -->
+  <path d="M94 166 q6 4 12 0" fill="none" stroke="#B9694A" stroke-width="3" stroke-linecap="round"/>
+  <!-- silbato colgando -->
+  <path d="M90 186 Q100 204 110 186" fill="none" stroke="#1F1B16" stroke-width="2.5"/>
+  <rect x="94" y="198" width="15" height="9" rx="4.5" fill="#F2B705" stroke="#1F1B16" stroke-width="3"/>
+</g>

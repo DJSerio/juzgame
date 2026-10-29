@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-demo/
+dist-fn/
+shots/
+*.zip
+la-partida-demo.html
+.DS_Store
