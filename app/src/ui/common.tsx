@@ -16,49 +16,98 @@ export function useNow(ms = 1000) {
 type When = 'play' | 'tool' | 'golpe' | 'apuesta' | 'escudo';
 export const cLabel = (c: Comodin) => COMODIN[c].icon === COMODIN[c].name ? COMODIN[c].name : `${COMODIN[c].icon} ${COMODIN[c].name}`;
 export const COMODIN: Record<Comodin, { name: string; icon: string; desc: string; when: When; good: string; steps: string[] }> = {
-  x2: { name: '×2', icon: '×2', desc: 'Si tu palabra gana, sumas el doble.', when: 'play', good: 'Ganas 2 puntos en vez de 1.', steps: ['Elige tu palabra', 'Pulsa «Jugar con ×2»'] },
-  x3: { name: '×3', icon: '×3', desc: 'Si tu palabra gana, sumas el triple.', when: 'play', good: 'Ganas 3 puntos en vez de 1.', steps: ['Elige tu palabra', 'Pulsa «Jugar con ×3»'] },
-  cambio: { name: 'Cambio al azar', icon: '🔄', desc: 'Sueltas tu peor palabra y recibes una de la mano de otro jugador al azar.', when: 'tool', good: 'Te quitas una palabra mala.', steps: ['Toca la palabra que quieres soltar', 'Pulsa «Soltar esta palabra»', 'Después juega con normalidad'] },
-  nuevas: { name: 'Palabras nuevas', icon: '🃏', desc: 'Cambias las palabras que quieras por otras nuevas del mazo.', when: 'tool', good: 'Renuevas tu mano.', steps: ['Toca las palabras que quieres cambiar', 'Pulsa «Cambiar por nuevas»', 'Después juega con normalidad'] },
-  escribe: { name: 'Escribe tu palabra', icon: '✍️', desc: 'En vez de una carta, juegas la palabra que tú escribas.', when: 'play', good: 'Juegas la palabra perfecta.', steps: ['Escribe tu palabra', 'Pulsa «Jugar con Escribe tu palabra»'] },
-  soborno: { name: 'Soborno', icon: '💰', desc: 'Al juez le llega un aviso secreto. Si elige tu palabra, él también suma 1.', when: 'play', good: 'Tientas al juez para que te elija.', steps: ['Elige tu palabra', 'Pulsa «Jugar con Soborno»'] },
-  abogado: { name: 'Abogado', icon: '⚖️', desc: 'Solo tu palabra podrá defenderse ante el juez. Nadie más puede debatir.', when: 'play', good: 'Tienes la palabra en exclusiva.', steps: ['Elige tu palabra', 'Pulsa «Jugar con Abogado»', 'Cuando el juez destape las cartas, defiéndela'] },
-  doble: { name: 'Doble envío', icon: '✌️', desc: 'Juegas dos palabras y salen como dos cartas separadas y anónimas. Si el juez elige cualquiera de las dos, ganas tú.', when: 'play', good: 'Doble oportunidad de ganar. Robas una palabra nueva para no quedarte con menos.', steps: ['Toca dos palabras', 'Pulsa «Jugar con Doble envío»'] },
-  golpe: { name: 'Golpe de Estado', icon: '👑', desc: 'Eliges tú el adjetivo en lugar del juez, en secreto.', when: 'golpe', good: 'Eliges el adjetivo que mejor te va.', steps: ['Mientras el juez está eligiendo, pulsa «Dar golpe de Estado»', 'Elige tú el adjetivo', 'Disimula'] },
-  espia: { name: 'Espía', icon: '🕵️', desc: 'Ves en secreto qué palabra ha jugado otro jugador.', when: 'tool', good: 'Sabes contra qué compites.', steps: ['Espera a que alguien haya jugado', 'Elige a quién espiar', 'Después juega tu palabra'] },
-  apuesta: { name: 'Apuesta', icon: '🎲', desc: 'Cuando el juez destapa las cartas, apuestas cuál ganará (no la tuya). Si aciertas, +1.', when: 'apuesta', good: 'Puedes puntuar aunque tus cartas sean malas.', steps: ['Espera a que el juez destape todas las cartas', 'Pulsa «Apostar»', 'Toca la carta que crees que ganará'] },
+  x2: { name: '×2', icon: '×2', desc: 'Si tu carta gana, sumas el doble.', when: 'play', good: 'Ganas 2 puntos en vez de 1.', steps: ['Tócalo encima de tus cartas', 'Elige tu carta', 'Pulsa «Jugar con ×2»'] },
+  x3: { name: '×3', icon: '×3', desc: 'Si tu carta gana, sumas el triple.', when: 'play', good: 'Ganas 3 puntos en vez de 1.', steps: ['Tócalo encima de tus cartas', 'Elige tu carta', 'Pulsa «Jugar con ×3»'] },
+  cambio: { name: 'Cambio al azar', icon: '🔄', desc: 'Sueltas la palabra que peor te va y te llevas una de la mano de otro jugador al azar.', when: 'tool', good: 'Te quitas una palabra mala.', steps: ['Úsalo en cualquier momento de la ronda (también siendo juez)', 'Toca la palabra que quieres soltar', 'Pulsa «Soltar esta palabra»'] },
+  nuevas: { name: 'Palabras nuevas', icon: '🃏', desc: 'Cambias las palabras que quieras por otras nuevas del mazo.', when: 'tool', good: 'Renuevas tu mano.', steps: ['Úsalo en cualquier momento de la ronda (también siendo juez)', 'Toca las palabras que quieres cambiar', 'Pulsa «Cambiar por nuevas»'] },
+  escribe: { name: 'Escribe tu palabra', icon: '✍️', desc: 'En vez de jugar una carta, escribes tu propia palabra con su descripción.', when: 'play', good: 'Juegas la palabra perfecta.', steps: ['Tócalo encima de tus cartas', 'Escribe la palabra y su frase', 'Pulsa «Jugar con Escribe tu palabra»'] },
+  soborno: { name: 'Soborno', icon: '💰', desc: 'Todos saben que hay un soborno en la mesa, pero no de quién. El juez ve tu carta marcada con 💰: si la elige, él también suma 1… y todos sabrán que aceptó.', when: 'play', good: 'Tientas al juez sin tener que decir nada.', steps: ['Tócalo encima de tus cartas', 'Elige tu carta', 'Pulsa «Jugar con Soborno»', 'Prohibido hablar del soborno: el juez puede multar'] },
+  abogado: { name: 'Abogado', icon: '⚖️', desc: 'Solo las cartas con abogado pueden defenderse en voz alta. El resto, silencio o el juez le multa con −1. Si hay varios abogados, se defienden todos.', when: 'play', good: 'Tienes la palabra en exclusiva.', steps: ['Actívalo al jugar tu carta, o después mientras el juez delibera', 'Cuando se destape tu carta, defiéndela'] },
+  doble: { name: 'Doble envío', icon: '✌️', desc: 'Juegas dos palabras y salen como dos cartas separadas y anónimas. Si el juez elige cualquiera de las dos, ganas tú.', when: 'play', good: 'Doble oportunidad de ganar. Robas una palabra nueva para no quedarte con menos.', steps: ['Tócalo encima de tus cartas', 'Toca dos palabras', 'Pulsa «Jugar con Doble envío»'] },
+  golpe: { name: 'Golpe de Estado', icon: '👑', desc: 'En la próxima ronda en la que no seas juez, eliges tú el adjetivo en lugar del juez, mirando tus palabras. Nadie sabrá que has sido tú.', when: 'golpe', good: 'Eliges el adjetivo que mejor va con tus cartas.', steps: ['Prepáralo en cualquier momento de la ronda', 'Al empezar la siguiente ronda, eliges tú el adjetivo', 'Disimula'] },
+  espia: { name: 'Espía', icon: '🕵️', desc: 'Ves en secreto qué ha jugado otro jugador. Si aún no ha jugado, te lo enseñamos en cuanto juegue.', when: 'tool', good: 'Sabes contra qué compites.', steps: ['Úsalo mientras se juegan las cartas (antes o después de jugar tú)', 'Elige a quién espiar'] },
+  apuesta: { name: 'Apuesta', icon: '🎲', desc: 'Mientras el juez destapa las cartas, apuestas cuál ganará (no la tuya). Si aciertas, +1. Si el juez elige antes de que apuestes, no se gasta.', when: 'apuesta', good: 'Puedes puntuar aunque tus cartas sean malas.', steps: ['En cuanto el juez destape la primera carta, pulsa «Usar Apuesta»', 'Toca la carta que crees que ganará'] },
   escudo: { name: 'Escudo', icon: '🛡️', desc: 'Te protege solo: para el primer Ladrón o Cambio al azar que otro jugador lance contra ti.', when: 'escudo', good: 'Nadie te roba puntos ni palabras.', steps: ['No hay que hacer nada', 'Si alguien va a por ti, el Escudo lo para y se gasta', 'Te avisaremos cuando pase'] },
-  ladron: { name: 'Ladrón', icon: '🦹', desc: 'Al jugar tu palabra, robas 1 punto al que va primero.', when: 'play', good: 'Tú +1 y el líder −1, al momento.', steps: ['Elige tu palabra', 'Pulsa «Jugar con Ladrón»'] },
-  carrete: { name: 'Carrete', icon: '📸', desc: 'La siguiente ronda se juega con fotos de la galería en vez de palabras.', when: 'play', good: 'Cambias el juego para todos.', steps: ['Elige tu palabra', 'Pulsa «Jugar con Carrete»', 'La próxima ronda será de fotos'] },
-  pareja: { name: 'Puntos en pareja', icon: '💞', desc: 'Formas pareja secreta con el juez; el resto se empareja al azar. Si gana una palabra, su autor y su pareja suman 2 cada uno.', when: 'play', good: 'Si el juez te elige, sumáis 2 los dos.', steps: ['Elige tu palabra', 'Pulsa «Jugar con Puntos en pareja»'] },
+  ladron: { name: 'Ladrón', icon: '🦹', desc: 'Al jugar tu carta, robas 1 punto al que va primero.', when: 'play', good: 'Tú +1 y el líder −1, al momento.', steps: ['Tócalo encima de tus cartas', 'Elige tu carta', 'Pulsa «Jugar con Ladrón»'] },
+  carrete: { name: 'Carrete', icon: '📸', desc: 'La siguiente ronda se juega con fotos de la galería en vez de palabras.', when: 'play', good: 'Cambias el juego para todos.', steps: ['Tócalo encima de tus cartas', 'Elige tu carta', 'La próxima ronda será de fotos'] },
+  pareja: { name: 'Puntos en pareja', icon: '💞', desc: 'Vas en pareja secreta con el juez y el resto se empareja al azar. Si gana tu carta: tú +2 y el juez +2. Si gana otra pareja: su compañero se lleva +1.', when: 'play', good: 'Ganas el doble y el juez también gana si te elige.', steps: ['Tócalo encima de tus cartas', 'Elige tu carta', 'Pulsa «Jugar con Puntos en pareja»'] },
 };
 const WHEN_TEXT: Record<When, string> = {
   play: 'Se usa al elegir tu palabra, cuando no eres el juez.',
-  tool: 'Se usa antes de jugar tu palabra, cuando no eres el juez.',
-  golpe: 'Se usa mientras el juez elige el adjetivo.',
-  apuesta: 'Se usa cuando el juez ha destapado todas las cartas.',
+  tool: 'Se usa en cualquier momento de la ronda.',
+  golpe: 'Se prepara en cualquier momento y actúa en la siguiente ronda en la que no seas juez.',
+  apuesta: 'Se usa mientras el juez destapa y delibera, hasta que elige la ganadora.',
   escudo: 'Es automático: actúa solo cuando alguien te ataca. No protege de la ruleta.',
 };
 const NOT_IN_CARRETE: Comodin[] = ['escribe', 'doble', 'cambio', 'nuevas', 'golpe'];
 
 export function availability(c: Comodin, pub: Pub, me: Priv): { can: boolean; reason: string } {
-  const info = COMODIN[c]; const r = pub.round;
+  const info = COMODIN[c]; const r = pub.round; const ph = pub.phase;
+  const inRound = !!r && ['adjective', 'play', 'judging', 'vote', 'reveal'].includes(ph);
   if (info.when === 'escudo') return { can: false, reason: 'No hace falta activarlo.' };
-  if (me.usedComodin) return { can: false, reason: 'Ya has usado un comodín esta ronda (máximo uno por ronda).' };
-  if (r?.type === 'carrete' && NOT_IN_CARRETE.includes(c)) return { can: false, reason: 'No sirve en las rondas de Carrete.' };
-  if (me.isJudge && pub.phase !== 'lobby') return { can: false, reason: 'Esta ronda eres el juez. Guárdalo para cuando juegues.' };
-  if (info.when === 'golpe') return pub.phase === 'adjective' && r?.type === 'normal' && !r.adjective ? { can: true, reason: '' } : { can: false, reason: 'Solo mientras el juez elige el adjetivo.' };
-  if (info.when === 'apuesta') {
-    if (pub.phase !== 'judging' || !r) return { can: false, reason: 'Cuando el juez destape todas las cartas.' };
-    if (r.revealed < r.total) return { can: false, reason: 'Espera a que el juez destape todas las cartas.' };
+  if (c === 'golpe') {
+    if (me.golpeArmed) return { can: false, reason: 'Ya lo tienes preparado para la próxima ronda.' };
+    if (ph === 'adjective' && r?.type === 'normal' && !r.adjective && !r.golpeArmed && !me.isJudge && !me.usedComodin) return { can: true, reason: '' };
+    return ['roulette', 'adjective', 'play', 'judging', 'vote', 'reveal'].includes(ph) ? { can: true, reason: '' } : { can: false, reason: 'Cuando empiece la partida.' };
+  }
+  if (me.usedComodin) return { can: false, reason: 'Ya has usado un comodín esta ronda (máximo uno). Podrás usarlo en la siguiente.' };
+  if (c === 'cambio' || c === 'nuevas') return inRound ? { can: true, reason: '' } : { can: false, reason: 'Cuando empiece la ronda.' };
+  if (me.isJudge && ph !== 'lobby') return { can: false, reason: 'Esta ronda eres el juez. Guárdalo para cuando juegues.' };
+  if (c === 'espia') return ph === 'adjective' || ph === 'play' ? { can: true, reason: '' } : { can: false, reason: 'Mientras se juegan las cartas. En esta ronda ya no: úsalo en la siguiente.' };
+  if (c === 'apuesta') {
+    if (ph !== 'judging' || !r) return { can: false, reason: 'En cuanto el juez empiece a destapar las cartas.' };
+    if (r.revealed < 1) return { can: false, reason: 'Espera a que el juez destape la primera carta.' };
     return me.myApuesta ? { can: false, reason: 'Ya has apostado.' } : { can: true, reason: '' };
   }
-  if (pub.phase !== 'play') return { can: false, reason: 'Cuando te toque elegir tu palabra.' };
-  if (me.myPlayId) return { can: false, reason: 'Ya has jugado esta ronda.' };
-  if (me.manoAjenaMe) return { can: false, reason: 'Esta ronda tu palabra la elige otro (Mano Ajena).' };
+  if (c === 'abogado' && (me.myPlayId && (ph === 'play' || ph === 'judging'))) return { can: true, reason: '' };
+  if (r?.type === 'carrete' && NOT_IN_CARRETE.includes(c)) return { can: false, reason: 'No sirve en las rondas de Carrete.' };
+  if (ph !== 'play') return { can: false, reason: 'Cuando te toque jugar tu carta.' };
+  if (me.myPlayId) return { can: false, reason: 'Ya has jugado esta ronda. Guárdalo para la siguiente.' };
+  if (me.manoAjenaMe) return { can: false, reason: 'Esta ronda tu carta la elige otro (Mano Ajena).' };
   if (c === 'pareja' && r?.pareja) return { can: false, reason: 'Alguien ya ha activado parejas esta ronda.' };
   if (c === 'carrete' && pub.nextCarrete) return { can: false, reason: 'La próxima ronda ya es de Carrete.' };
   return { can: true, reason: '' };
+}
+
+/** Comodines que conviene recordar AHORA (para avisos y el brillo del marcador). */
+export function urgent(c: Comodin, pub: Pub, me: Priv) {
+  if (!availability(c, pub, me).can) return false;
+  if (c === 'golpe') return pub.phase === 'adjective';
+  if (c === 'apuesta' || c === 'abogado') return true;
+  if (c === 'cambio' || c === 'nuevas' || c === 'espia') return pub.phase === 'play' && !me.myPlayId;
+  return COMODIN[c].when === 'play' && pub.phase === 'play';
+}
+
+/** Acción del botón principal de un comodín, según el momento. */
+function useLabel(c: Comodin, pub: Pub, me: Priv): string {
+  if (c === 'golpe') return pub.phase === 'adjective' && pub.round && !pub.round.adjective && !pub.round.golpeArmed && !me.isJudge ? 'Dar golpe ahora' : 'Preparar para la próxima ronda';
+  if (c === 'apuesta') return 'Apostar ahora';
+  if (c === 'abogado' && me.myPlayId) return 'Contratar Abogado para mi carta';
+  if ((c === 'cambio' || c === 'nuevas' || c === 'espia') && !(pub.phase === 'play' && !me.myPlayId && !me.isJudge)) return 'Usar ahora';
+  return 'Activar para esta jugada';
+}
+
+function ToolSheet({ c, onClose }: { c: 'cambio' | 'nuevas' | 'espia'; onClose: () => void }) {
+  const { snap } = useApp();
+  const pub = snap!.public, me = snap!.private!;
+  const [sel, setSel] = useState<number[]>([]);
+  const others = pub.players.filter(p => !p.removed && p.id !== me.id && p.id !== pub.round?.judgeId);
+  return (
+    <Sheet title={cLabel(c)} onClose={onClose}>
+      {c === 'espia' ? (
+        <div className="stack">{others.map(p => <button key={p.id} className="btn" onClick={() => { act({ type: 'tool', comodin: 'espia', target: p.id }); onClose(); }}>🕵️ Espiar a {p.name}<small style={{ display: 'block', fontWeight: 500, opacity: .75 }}>{p.played ? 'Ya ha jugado: lo verás al momento' : 'Aún no ha jugado: te avisamos en cuanto juegue'}</small></button>)}</div>
+      ) : (
+        <>
+          <p className="muted" style={{ marginTop: 0 }}>{c === 'cambio' ? 'Toca la palabra que quieres soltar.' : 'Toca las palabras que quieres cambiar por nuevas.'}</p>
+          <div className="tool-hand">{me.hand.map((h, i) => (
+            <button key={h.id} className={`tool-w${sel.includes(i) ? ' on' : ''}`} onClick={() => setSel(s => c === 'cambio' ? [i] : s.includes(i) ? s.filter(x => x !== i) : [...s, i])}><b>{h.w}</b><small>{h.d}</small></button>
+          ))}</div>
+          <button className="btn primary block" disabled={!sel.length} onClick={() => { act(c === 'cambio' ? { type: 'tool', comodin: 'cambio', handIndex: sel[0] } : { type: 'tool', comodin: 'nuevas', handIndices: sel }); onClose(); }}>{c === 'cambio' ? 'Soltar esta palabra' : `Cambiar ${sel.length || ''} por nuevas`}</button>
+        </>
+      )}
+      <button className="btn ghost block" onClick={onClose}>Cancelar</button>
+    </Sheet>
+  );
 }
 
 // comodín activado (estado local del cliente)
@@ -105,10 +154,16 @@ function ComodinSheet({ c, onClose, onGolpe, onApuesta }: { c: Comodin; onClose:
   const info = COMODIN[c];
   const av = availability(c, pub, me);
   const isActive = useActive(pub.roundNo) === c;
+  const [tool, setTool] = useState(false);
+  const label = useLabel(c, pub, me);
   const use = () => {
-    if (info.when === 'golpe' || info.when === 'apuesta') { window.dispatchEvent(new CustomEvent('lp:tool', { detail: info.when })); onClose(); return; }
+    if (c === 'golpe') { if (label === 'Dar golpe ahora') window.dispatchEvent(new CustomEvent('lp:tool', { detail: 'golpe' })); else act({ type: 'armGolpe' }); onClose(); return; }
+    if (c === 'apuesta') { window.dispatchEvent(new CustomEvent('lp:tool', { detail: 'apuesta' })); onClose(); return; }
+    if (c === 'abogado' && me.myPlayId) { act({ type: 'lawyer' }); onClose(); return; }
+    if (label === 'Usar ahora') { setTool(true); return; }
     setActive(isActive ? null : c, pub.roundNo); onClose();
   };
+  if (tool) return <ToolSheet c={c as 'cambio' | 'nuevas' | 'espia'} onClose={onClose} />;
   return (
     <Sheet title={info.icon === info.name ? info.name : `${info.icon} ${info.name}`} onClose={onClose}>
       <p style={{ fontSize: 18, margin: '0 0 8px' }}>{info.desc}</p>
@@ -116,7 +171,7 @@ function ComodinSheet({ c, onClose, onGolpe, onApuesta }: { c: Comodin; onClose:
       <p className="muted" style={{ margin: '10px 0 4px' }}>{WHEN_TEXT[info.when]}</p>
       <ol className="steps">{info.steps.map(s => <li key={s}>{s}</li>)}</ol>
       {info.when !== 'escudo' && (av.can
-        ? <button className="btn primary block" onClick={use}>{isActive ? 'Desactivar' : info.when === 'golpe' ? 'Dar golpe de Estado' : info.when === 'apuesta' ? 'Apostar ahora' : 'Activar para esta ronda'}</button>
+        ? <button className="btn primary block" onClick={use}>{isActive ? 'Desactivar' : label}</button>
         : <div className="banner">Ahora no se puede: {av.reason}</div>)}
       <button className="btn ghost block" onClick={onClose}>Cerrar</button>
     </Sheet>
@@ -229,7 +284,7 @@ export function ComodinButton() {
   const pub = snap.public, me = snap.private;
   return (
     <>
-      <button className={`hud-coins${me.comodines.some(c => availability(c, pub, me).can) && !me.usedComodin ? ' ready' : ''}`} onClick={() => setOpen(true)} aria-label={`Mis comodines: ${me.comodines.map(c => COMODIN[c].name).join(', ') || 'ninguno'}`}>
+      <button className={`hud-coins${me.comodines.some(c => urgent(c, pub, me)) && !me.usedComodin ? ' ready' : ''}`} onClick={() => setOpen(true)} aria-label={`Mis comodines: ${me.comodines.map(c => COMODIN[c].name).join(', ') || 'ninguno'}`}>
         {[0, 1].map(i => { const c = me.comodines[i]; return c ? <span key={i} className="hcoin">{COMODIN[c].icon}</span> : <span key={i} className="hcoin empty" />; })}
         
       </button>
@@ -329,7 +384,7 @@ export function ComodinReminder() {
   if (!snap?.private) return null;
   const pub = snap.public, me = snap.private;
   if (me.usedComodin) return null;
-  const usable = me.comodines.filter(c => availability(c, pub, me).can);
+  const usable = me.comodines.filter(c => urgent(c, pub, me));
   if (!usable.length) return null;
   return (
     <button className="reminder" onClick={() => window.dispatchEvent(new CustomEvent('lp:open-comodines'))}>
@@ -398,9 +453,9 @@ export function Notices() {
 }
 
 /* ================= resultado de la ruleta (visible en cualquier fase) ================= */
-export const WHEEL_LABELS = [...Array(10).fill('Comodín'), '×3', 'Ladrón', 'Vacía', 'Vacía', 'Vacía', 'Vacía', 'Vacía', 'Mano Ajena', 'Todo o Nada', 'Robin Hood'];
-export const VISUAL = [0, 12, 1, 17, 2, 13, 3, 10, 4, 14, 5, 18, 6, 15, 7, 11, 8, 16, 9, 19];
-const SLICE_COLOR = (slot: number) => slot < 10 ? '#6C4DF0' : slot === 10 || slot === 11 ? '#F2B705' : slot < 17 ? '#0D2C22' : '#C8412B';
+export const WHEEL_LABELS = ['×2', '🔄 Cambio', '🃏 Nuevas', '✍️ Escribe', '💰 Soborno', '⚖️ Abogado', '✌️ Doble', '👑 Golpe', '🕵️ Espía', '🎲 Apuesta', '🛡️ Escudo', '📸 Carrete', '💞 Pareja', '×3', '🦹 Ladrón', 'Vacía', 'Vacía', 'Mano Ajena', 'Todo o Nada', 'Robin Hood'];
+export const VISUAL = [0, 17, 1, 2, 13, 3, 15, 4, 5, 18, 6, 7, 14, 8, 9, 16, 10, 11, 19, 12];
+const SLICE_COLOR = (slot: number) => slot < 13 ? (slot % 2 ? '#7B5CF5' : '#6C4DF0') : slot === 13 || slot === 14 ? '#F2B705' : slot < 17 ? '#0D2C22' : '#C8412B';
 export function Wheel({ slot, spinning }: { slot: number | null; spinning?: boolean }) {
   const n = 20, R = 100;
   const [rot, setRot] = useState(0);
@@ -417,7 +472,7 @@ export function Wheel({ slot, spinning }: { slot: number | null; spinning?: bool
           return (
             <g key={i}>
               <path d={`M0 0 L${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1} Z`} fill={SLICE_COLOR(s)} stroke="#12392C" strokeWidth="1.2" />
-              <text transform={right ? `rotate(${mid}) translate(${R - 8} 0)` : `rotate(${mid}) translate(${R - 8} 0) rotate(180)`} textAnchor={right ? 'end' : 'start'} dominantBaseline="middle" fontSize="7.2" fontWeight="700" fill={s === 10 || s === 11 ? '#2B2000' : '#FFFDF7'} fontFamily="'Bricolage Grotesque', system-ui, sans-serif">{WHEEL_LABELS[s]}</text>
+              <text transform={right ? `rotate(${mid}) translate(${R - 8} 0)` : `rotate(${mid}) translate(${R - 8} 0) rotate(180)`} textAnchor={right ? 'end' : 'start'} dominantBaseline="middle" fontSize="7.2" fontWeight="700" fill={s === 13 || s === 14 ? '#2B2000' : '#FFFDF7'} fontFamily="'Bricolage Grotesque', system-ui, sans-serif">{WHEEL_LABELS[s]}</text>
             </g>
           );
         })}
@@ -431,7 +486,7 @@ const SPECIAL: Record<string, { title: string; what: string; when: string; how: 
   vacia: { title: 'Casilla vacía', what: 'No te toca nada esta vez.', when: '—', how: '—', why: 'Mejor suerte en la próxima ruleta (cada 3 rondas).', tone: 'neutral' },
   mano_ajena: { title: 'Mano Ajena', what: 'Otro jugador elegirá a ciegas qué carta juegas.', when: 'La próxima ronda en la que no seas juez.', how: 'Automático: no puedes elegir tu carta esa ronda.', why: 'Es un castigo. Si tienes Escudo, te preguntaremos si quieres anularlo.', tone: 'bad' },
   todo_nada: { title: 'Todo o Nada', what: 'Si tu carta gana sumas +2; si no gana, pierdes 1 punto.', when: 'La próxima ronda en la que juegues.', how: 'Automático. Verás un aviso «Todo o Nada activo» al jugar.', why: 'Arriesgado: juega tu mejor carta esa ronda.', tone: 'bad' },
-  robin_hood: { title: 'Robin Hood', what: 'Le regalas 1 punto al último de la clasificación.', when: 'Ya ha pasado, al girar.', how: 'Automático. Si el último eres tú, te libras.', why: 'Mantiene la partida igualada.', tone: 'bad' },
+  robin_hood: { title: 'Robin Hood', what: 'Le regalas 1 punto al último de la clasificación.', when: 'Ya ha pasado, al girar.', how: 'Automático. Si el último eres tú, al revés: el líder te da 1 punto a ti.', why: 'Mantiene la partida igualada.', tone: 'bad' },
 };
 function RouletteExplain({ d }: { d: { label: string; hint: string; item: { kind: string; comodin?: Comodin } } }) {
   const c = d.item.kind === 'comodin' ? d.item.comodin! : null;
@@ -453,13 +508,13 @@ function RouletteExplain({ d }: { d: { label: string; hint: string; item: { kind
 
 export function WheelLegend() {
   const items: [string, string, string][] = [
-    ['#6C4DF0', 'Comodín ×10', 'Uno al azar: ' + (['x2', 'cambio', 'nuevas', 'escribe', 'soborno', 'abogado', 'doble', 'golpe', 'espia', 'apuesta', 'escudo', 'carrete', 'pareja'] as Comodin[]).map(c => COMODIN[c].name).join(', ') + '.'],
+    ['#6C4DF0', '13 comodines', 'Uno de cada: ' + (['x2', 'cambio', 'nuevas', 'escribe', 'soborno', 'abogado', 'doble', 'golpe', 'espia', 'apuesta', 'escudo', 'carrete', 'pareja'] as Comodin[]).map(c => COMODIN[c].name).join(', ') + '.'],
     ['#F2B705', '×3', 'Si tu carta gana, triple de puntos.'],
     ['#F2B705', 'Ladrón', 'Al jugar, robas 1 punto al líder.'],
-    ['#0D2C22', 'Vacía ×5', 'No te toca nada.'],
+    ['#0D2C22', 'Vacía ×2', 'No te toca nada.'],
     ['#C8412B', 'Mano Ajena', 'Otro elige tu carta a ciegas.'],
     ['#C8412B', 'Todo o Nada', 'Si ganas +2, si no −1.'],
-    ['#C8412B', 'Robin Hood', 'Das 1 punto al último.'],
+    ['#C8412B', 'Robin Hood', 'Das 1 punto al último (si el último eres tú, el líder te da 1).'],
   ];
   return (
     <details className="legend" open>

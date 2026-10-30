@@ -56,7 +56,7 @@ export function needsAction(token: string): string | null {
     case 'lobby': return me.isHost ? 'Empezar' : null;
     case 'order': return pub.orderPick && me.myOrder == null ? 'Elegir carta' : null;
     case 'roulette': return pub.roulette?.pending.includes(me.id) ? 'Ruleta' : null;
-    case 'adjective': return me.isJudge ? (r?.type === 'carrete' ? 'Frase' : 'Adjetivo') : null;
+    case 'adjective': return me.golpeNow ? 'Golpe de Estado' : r?.golpeArmed ? null : me.isJudge ? (r?.type === 'carrete' ? 'Frase' : 'Adjetivo') : null;
     case 'play': return me.mustDiscard ? 'Tirar palabra' : me.manoAjenaTask ? 'Mano Ajena' : (!me.isJudge && !me.myPlayId && !me.manoAjenaMe && !pub.players.find(p => p.id === me.id)?.skipped ? 'Jugar' : null);
     case 'judging': return me.isJudge ? 'Juzgar' : null;
     case 'vote': return !me.isJudge && me.myPlayId && !me.myVote ? 'Votar' : null;
@@ -85,7 +85,8 @@ function botAct(token: string): Action | null {
       if (me.roulette?.needsChoice) return { type: 'keepChoice', discard: pick([...me.comodines, me.roulette.offered!]) };
       return { type: 'spin' };
     case 'adjective':
-      if (!me.isJudge) return null;
+      if (me.golpeNow) return { type: 'golpe', index: Math.floor(Math.random() * 3) };
+      if (!me.isJudge || r?.golpeArmed) return null;
       return r?.type === 'carrete' ? { type: 'setPhrase', phrase: pick(['Tu peor foto', 'Mi cara un lunes', 'Lo más random de mi galería']) } : { type: 'chooseAdjective', index: Math.floor(Math.random() * 3) };
     case 'play': {
       if (me.mustDiscard) return { type: 'judgeDiscard', index: Math.floor(Math.random() * me.hand.length) };

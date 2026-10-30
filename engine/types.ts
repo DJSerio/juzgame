@@ -27,14 +27,14 @@ export interface Player {
   comodines: Comodin[];
   points: number;
   removed: boolean;
-  pending: { todo: boolean; manoAjena: boolean };
+  pending: { todo: boolean; manoAjena: boolean; golpe?: boolean };
   notices: Notice[];
   joinedAt: number;
 }
 
 export interface Notice { id: string; text: string; at: number; kind?: string; data?: unknown }
 
-export interface PlayWord { wordId?: number; custom?: string }
+export interface PlayWord { wordId?: number; custom?: string; customDesc?: string }
 
 export interface Play {
   id: string;
@@ -58,6 +58,11 @@ export interface ManoAjenaTask { target: string; chooser: string; deadline: numb
 
 export interface Round {
   judgeDiscarded?: boolean;
+  golpeArmed?: string | null;
+  lawyers?: string[];
+  gainLog?: Record<string, string[]>;
+  fines?: string[];
+  bribe?: 'accepted' | 'rejected';
   adjOpenAt?: number;
   decideAt?: number;
   spies?: { by: string; target: string }[];
@@ -155,8 +160,11 @@ export type Action =
   | { type: 'chooseAdjective'; index: number }
   | { type: 'setPhrase'; phrase: string }
   | { type: 'golpe'; index: number }
-  | { type: 'play'; hand?: number[]; custom?: string; photo?: string; comodin?: Comodin }
-  | { type: 'tool'; comodin: 'cambio' | 'nuevas' | 'espia'; handIndex?: number; handIndices?: number[]; target?: string }
+  | { type: 'play'; hand?: number[]; custom?: string; customDesc?: string; photo?: string; comodin?: Comodin }
+  | { type: 'armGolpe' }
+  | { type: 'lawyer' }
+  | { type: 'fine'; playerId: string }
+  | { type: 'tool'; comodin: 'cambio' | 'nuevas' | 'espia' | 'abogado'; handIndex?: number; handIndices?: number[]; target?: string }
   | { type: 'manoAjenaPick'; slot: number }
   | { type: 'shield'; promptId: string; use: boolean }
   | { type: 'discard'; playId: string }

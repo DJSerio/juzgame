@@ -30,10 +30,10 @@ const NORMAL_POOL: Comodin[] = ['x2', 'cambio', 'nuevas', 'escribe', 'soborno', 
 
 // 20 casillas
 export const WHEEL: RouletteItem[] = [
-  ...Array.from({ length: 10 }, () => ({ kind: 'comodin', comodin: 'x2' } as RouletteItem)), // comodín normal (se sortea cuál)
+  ...NORMAL_POOL.map(c => ({ kind: 'comodin', comodin: c } as RouletteItem)), // 13: cada comodín a la vista
   { kind: 'comodin', comodin: 'x3' },
   { kind: 'comodin', comodin: 'ladron' },
-  { kind: 'vacia' }, { kind: 'vacia' }, { kind: 'vacia' }, { kind: 'vacia' }, { kind: 'vacia' },
+  { kind: 'vacia' }, { kind: 'vacia' },
   { kind: 'mano_ajena' }, { kind: 'todo_nada' }, { kind: 'robin_hood' },
 ];
 
@@ -43,7 +43,7 @@ export function leagueEntry(s: State) {
   const r = [...(s.reveal?.ranking ?? [])].sort((a, b) => b.points - a.points);
   return r.map(p => { const pos = 1 + r.filter(x => x.points > p.points).length; return { name: p.name, avatar: p.avatar ?? '', points: p.points, pos, league: LEAGUE_POINTS[pos - 1] ?? 0 }; });
 }
-export const ADJ_HEADSTART = 5000;
+export const ADJ_HEADSTART = 0;
 export const DELIBERATION = 8000;
 const pick = <T>(arr: T[], rng: () => number): T => arr[Math.floor(rng() * arr.length)];
 function shuffle<T>(arr: T[], rng: () => number): T[] {
@@ -95,9 +95,12 @@ const notify = (s: State, p: Player, ctx: Ctx, text: string, kind?: string, data
   p.notices.push({ id: id(s, 'n'), text, at: ctx.now, kind, data });
   if (p.notices.length > 30) p.notices.splice(0, p.notices.length - 30);
 };
-const addPoints = (s: State, p: Player, n: number) => {
+const addPoints = (s: State, p: Player, n: number, why = '') => {
   p.points = Math.round((p.points + n) * 2) / 2;
-  if (s.round) s.round.gains[p.id] = (s.round.gains[p.id] ?? 0) + n;
+  if (s.round) {
+    s.round.gains[p.id] = (s.round.gains[p.id] ?? 0) + n;
+    if (why) ((s.round.gainLog ??= {})[p.id] ??= []).push(`${n > 0 ? '+' : ''}${n} ${why}`);
+  }
 };
 
 function draw(s: State, ctx: Ctx): number {
@@ -193,7 +196,7 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
       if (r.type !== 'normal') fail('Esta ronda es de Carrete.');
       if (r.judgeId !== me.id && !isHost) fail('Elige el juez.');
       if (r.adjective !== null) fail('Ya hay adjetivo.');
-      if (ctx.now < (r.adjOpenAt ?? 0)) fail('Un momento: se están barajando los adjetivos.');
+      if (r.golpeArmed) fail('Ha habido un golpe de Estado: esta ronda el adjetivo no lo eliges tú.');
       if (a.index < 0 || a.index > 2) fail('Opción inválida.');
       r.adjective = r.adjOptions[a.index];
       startPlay(s, ctx);
@@ -211,7 +214,9 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
       const r = curRound(s, 'adjective');
       if (r.type !== 'normal') fail('No se puede en Carrete.');
       if (me.id === r.judgeId) fail('El juez no puede dar un golpe de Estado.');
-      useComodin(s, me, 'golpe');
+      if (r.adjective !== null) fail('El adjetivo ya está elegido.');
+      if (r.golpeArmed && r.golpeArmed !== me.id) fail('Otro jugador ya ha dado un golpe de Estado esta ronda.');
+      if (r.golpeArmed !== me.id) useComodin(s, me, 'golpe');
       if (a.index < 0 || a.index > 2) fail('Opción inválida.');
       r.adjective = r.adjOptions[a.index]; r.golpeBy = me.id;
       r.events.push(`${me.name} dio un golpe de Estado y eligió el adjetivo.`);
@@ -250,7 +255,7 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
     case 'debate': {
       const r = curRound(s, 'judging');
       if (r.judgeId !== me.id && !isHost) fail('Solo el juez.');
-      if (r.mordaza) fail('Hay un abogado: no se puede invocar debate.');
+      if (r.lawyers?.length || r.mordaza) fail('Hay abogado: no se puede invocar debate.');
       if (r.revealed < r.plays.length) fail('Destapa primero todas las cartas.');
       const ids = [...new Set(a.playIds)].filter(x => r.plays.some(p => p.id === x));
       if (ids.length < 2 || ids.length > 3) fail('Elige 2 o 3 palabras.');
@@ -274,14 +279,44 @@ export function apply(s: State, a: Action, ctx: Ctx, actionId?: string): State {
     case 'apuesta': {
       const r = curRound(s, 'judging');
       if (me.id === r.judgeId) fail('El juez no apuesta.');
-      if (r.revealed < r.plays.length) fail('Espera a que el juez destape todas las cartas.');
       const play = r.plays.find(p => p.id === a.playId) ?? fail('No existe.');
+      if (r.order.indexOf(play.id) >= r.revealed) fail('Esa carta aún no está destapada.');
       if (play.playerId === me.id) fail('No puedes apostar por la tuya.');
       useComodin(s, me, 'apuesta');
       r.apuestas[me.id] = a.playId;
       break;
     }
     case 'pickWinner': pickWinner(s, me, isHost, a.playId, ctx); break;
+    case 'lawyer': {
+      if (s.phase !== 'play' && s.phase !== 'judging') fail('El Abogado se usa mientras se juegan las cartas o mientras el juez delibera.');
+      const r = s.round!;
+      if (me.id === r.judgeId) fail('El juez no puede.');
+      const mine = r.plays.filter(p => p.playerId === me.id);
+      if (!mine.length) fail('Primero juega tu carta (o actívalo al jugarla).');
+      useComodin(s, me, 'abogado');
+      (r.lawyers ??= []).push(...mine.map(p => p.id)); r.mordaza = r.lawyers[0]; r.debate = null;
+      r.events.push(`${me.name} contrató un Abogado.`);
+      break;
+    }
+    case 'fine': {
+      const r = curRound(s, 'judging');
+      if (r.judgeId !== me.id && !isHost) fail('Solo el juez puede multar.');
+      const t = byId(s, a.playerId);
+      if (t.id === r.judgeId) fail('El juez no se multa a sí mismo.');
+      addPoints(s, t, -1, '(multa del juez por hablar sin abogado)');
+      (r.fines ??= []).push(t.id);
+      notify(s, t, ctx, '🔨 El juez te ha multado: −1 por hablar sin abogado.', 'round', { good: false });
+      r.events.push(`${judgeName(s)} multó a ${t.name} (−1) por hablar.`);
+      break;
+    }
+    case 'armGolpe': {
+      if (!['roulette', 'adjective', 'play', 'judging', 'vote', 'reveal'].includes(s.phase)) fail('Ahora no.');
+      if (me.pending.golpe) fail('Ya tienes un Golpe de Estado preparado.');
+      const i = me.comodines.indexOf('golpe'); if (i < 0) fail('No tienes Golpe de Estado.');
+      me.comodines.splice(i, 1); me.pending.golpe = true;
+      notify(s, me, ctx, '👑 Golpe de Estado preparado: en la próxima ronda en la que no seas juez, elegirás tú el adjetivo.', 'round', { good: true });
+      break;
+    }
     case 'judgeDiscard': {
       const r = curRound(s, 'play');
       if (r.judgeId !== me.id) fail('Solo el juez tira una palabra.');
@@ -434,8 +469,7 @@ function spin(s: State, me: Player, ctx: Ctx) {
   if (s.phase !== 'roulette' || !s.roulette) fail('No hay ruleta ahora.');
   if (s.roulette.results[me.id]) fail('Ya has tirado.');
   const slot = Math.floor(ctx.rng() * WHEEL.length);
-  let item = WHEEL[slot];
-  if (item.kind === 'comodin' && slot < 10) item = { kind: 'comodin', comodin: pick(NORMAL_POOL, ctx.rng) };
+  const item = WHEEL[slot];
   let label = '';
   let needsChoice = false; let offered: Comodin | undefined;
   switch (item.kind) {
@@ -455,13 +489,22 @@ function spin(s: State, me: Player, ctx: Ctx) {
       label = 'Robin Hood';
       const others = active(s).filter(p => p.id !== me.id);
       const minPts = Math.min(...active(s).map(p => p.points));
-      if (me.points === minPts) { notify(s, me, ctx, 'Robin Hood: el último eres tú. Te libras.'); break; }
+      if (me.points === minPts) {
+        const maxPts = Math.max(...others.map(p => p.points));
+        const leader = maxPts > minPts ? pick(others.filter(p => p.points === maxPts), ctx.rng) : null;
+        if (!leader || leader.points <= 0) { notify(s, me, ctx, 'Robin Hood: vas último, pero el líder no tiene nada que darte.'); break; }
+        leader.points -= 1; me.points += 1;
+        notify(s, me, ctx, `🏹 Robin Hood a tu favor: como vas último, ${leader.name} te da 1 punto.`, 'round', { good: true });
+        notify(s, leader, ctx, `🏹 Robin Hood: ${me.name} iba último y le has dado 1 punto (−1).`, 'round', { good: false });
+        pushEvent(s, `Robin Hood: ${leader.name} le dio 1 punto a ${me.name}, que iba último.`);
+        break;
+      }
       const lasts = others.filter(p => p.points === minPts);
       const last = pick(lasts, ctx.rng);
       const give = Math.min(1, me.points);
       if (give > 0) {
         me.points -= give; last.points += give;
-        notify(s, last, ctx, 'Robin Hood: alguien te ha regalado 1 punto.');
+        notify(s, last, ctx, '🏹 Robin Hood: como vas último, alguien te ha regalado 1 punto (+1).', 'round', { good: true });
         pushEvent(s, `${me.name} hizo de Robin Hood y le dio 1 punto a ${last.name}.`);
       }
       break;
@@ -521,6 +564,15 @@ function startRound(s: State, ctx: Ctx) {
   s.round = round;
   s.round!.handStart = Object.fromEntries(active(s).map(p => [p.id, p.hand.length]));
   s.phase = 'adjective';
+  if (type === 'normal') {
+    const g = active(s).find(p => p.pending.golpe && p.id !== judgeId);
+    if (g) {
+      g.pending.golpe = false; round.golpeArmed = g.id; round.comodinUsed[g.id] = 'golpe';
+      round.adjOpenAt = 0; round.adjDeadline = ctx.now + 30000;
+      s.feed.push('👑 ¡Golpe de Estado! Su Señoría ha sido depuesta: alguien elige el adjetivo.');
+      notify(s, g, ctx, '👑 Tu Golpe de Estado entra en acción: elige tú el adjetivo mirando tus palabras.', 'round', { good: true });
+    }
+  }
 }
 
 function curRound(s: State, phase: State['phase']): Round {
@@ -565,7 +617,6 @@ function doPlay(s: State, me: Player, a: Extract<Action, { type: 'play' }>, ctx:
   const c = a.comodin;
   if (c && ['cambio', 'nuevas', 'espia', 'apuesta', 'golpe', 'escudo'].includes(c)) fail('Ese comodín no se usa al jugar.');
   if (c && r.type === 'carrete' && !canUseInCarrete(c)) fail('Ese comodín no sirve en Carrete.');
-  if (c === 'abogado' && r.mordaza) fail('Ya hay un abogado en esta ronda.');
   if (c === 'pareja' && r.pareja) fail('Ya hay parejas esta ronda.');
   if (c === 'carrete' && s.nextCarrete) fail('La próxima ronda ya es de Carrete.');
 
@@ -575,7 +626,8 @@ function doPlay(s: State, me: Player, a: Extract<Action, { type: 'play' }>, ctx:
     if (!a.photo) fail('Sube una foto.');
   } else if (c === 'escribe') {
     const t = (a.custom ?? '').trim().slice(0, 60); if (!t) fail('Escribe tu palabra.');
-    words.push({ custom: t });
+    const d = (a.customDesc ?? '').trim().slice(0, 120);
+    words.push({ custom: t, customDesc: d || undefined });
   } else {
     const need = c === 'doble' ? 2 : 1;
     if (handIdx.length !== need) fail(need === 2 ? 'Elige dos palabras.' : 'Elige una palabra.');
@@ -593,7 +645,7 @@ function doPlay(s: State, me: Player, a: Extract<Action, { type: 'play' }>, ctx:
     r.plays.push(play);
   }
 
-  if (c === 'abogado') r.mordaza = play!.id;
+  if (c === 'abogado') { (r.lawyers ??= []).push(...r.plays.filter(p => p.playerId === me.id).map(p => p.id)); r.mordaza = r.lawyers[0]; }
   if (c === 'carrete') { s.nextCarrete = me.id; r.events.push(`${me.name} activó Carrete para la siguiente ronda.`); }
   if (c === 'pareja') makePairs(s, me, ctx);
   if (c === 'ladron') ladron(s, me, ctx);
@@ -611,6 +663,7 @@ function makePairs(s: State, me: Player, ctx: Ctx) {
   r.events.push(`${me.name} activó Puntos en Pareja.`);
 }
 
+const judgeName = (s: State) => nameOf(s, s.round?.judgeId);
 function leaderOtherThan(s: State, me: Player, ctx: Ctx): Player | null {
   const others = active(s).filter(p => p.id !== me.id);
   if (!others.length) return null;
@@ -626,7 +679,7 @@ function ladron(s: State, me: Player, ctx: Ctx) {
 function applyLadron(s: State, thief: Player, victim: Player, ctx: Ctx) {
   const n = Math.min(1, victim.points);
   if (n <= 0) { notify(s, thief, ctx, 'Ladrón: el líder no tenía nada que robar.'); return; }
-  addPoints(s, victim, -n); addPoints(s, thief, n);
+  addPoints(s, victim, -n, '(te robaron con Ladrón)'); addPoints(s, thief, n, '(robaste al líder con Ladrón)');
   notify(s, victim, ctx, '🦹 Te han robado 1 punto.');
   notify(s, thief, ctx, '🦹 Has robado 1 punto al líder.');
   (s.round ? s.round.events : s.feed).push(`${thief.name} robó 1 punto a ${victim.name}.`);
@@ -672,10 +725,11 @@ function revealSpy(s: State, me: Player, t: Player, ctx: Ctx) {
   notify(s, me, ctx, `🕵️ ${t.name} ha jugado: ${what}`, 'espia', { photo: plays[0]?.photo });
 }
 function doTool(s: State, me: Player, a: Extract<Action, { type: 'tool' }>, ctx: Ctx) {
-  const r = curRound(s, 'play');
-  if (me.id === r.judgeId) fail('El juez no puede.');
-  if (a.comodin !== 'espia' && r.plays.some(p => p.playerId === me.id)) fail('Ya has jugado.');
-  if (r.type === 'carrete' && a.comodin !== 'espia') fail('No sirve en Carrete.');
+  if (!s.round || !['adjective', 'play', 'judging', 'vote', 'reveal'].includes(s.phase)) fail('Ahora no se puede: espera a que empiece la ronda.');
+  const r = s.round!;
+  if (a.comodin === 'abogado') { apply(s, { type: 'lawyer' }, ctx); return; }
+  if (a.comodin === 'espia' && me.id === r.judgeId) fail('El juez no puede espiar: rompería el anonimato.');
+  if (a.comodin === 'espia' && !['adjective', 'play'].includes(s.phase)) fail('El Espía se usa mientras se juegan las cartas.');
   if (a.comodin === 'espia') {
     const t = byId(s, a.target ?? '');
     if (t.id === me.id || t.id === r.judgeId) fail('Elige a otro jugador.');
@@ -788,23 +842,32 @@ function finishRound(s: State, ctx: Ctx, winnerPlay: Play | null) {
     let base = r.todoActive.includes(w.id) ? 2 : 1;
     if (winnerPlay.comodin === 'x2') base *= 2;
     if (winnerPlay.comodin === 'x3') base *= 3;
+    let pairNote = '';
     if (r.pareja) {
-      base = Math.max(base, 2);
-      const pair = r.pareja.pairs.find(pp => pp.includes(w.id));
-      const partner = pair ? pair.find(x => x !== w.id) : undefined;
-      if (partner) { addPoints(s, byId(s, partner), 2 * mult); r.events.push(`Puntos en Pareja: ${w.name} y ${nameOf(s, partner)} suman 2 cada uno.`); }
+      if (w.id === r.pareja.by) {
+        base = Math.max(base, 2);
+        addPoints(s, judge, 2 * mult, `(tu pareja secreta, ${w.name}, ganó con Puntos en pareja)`);
+        r.events.push(`Puntos en Pareja: ganó ${w.name}, que iba con el juez ${judge.name}: +2 cada uno.`);
+        pairNote = ' con Puntos en pareja';
+      } else {
+        const pair = r.pareja.pairs.find(pp => pp.includes(w.id));
+        const partner = pair ? pair.find(x => x !== w.id) : undefined;
+        if (partner) { addPoints(s, byId(s, partner), 1 * mult, `(tu pareja secreta, ${w.name}, ganó la ronda)`); r.events.push(`Puntos en Pareja: ${nameOf(s, partner)} suma 1 por ir con ${w.name}.`); }
+      }
     }
-    addPoints(s, w, base * mult);
-    if (winnerPlay.comodin === 'soborno') { addPoints(s, judge, 1 * mult); r.events.push(`${judge.name} aceptó el soborno de ${w.name}.`); }
+    const extra = [winnerPlay.comodin === 'x2' ? '×2' : '', winnerPlay.comodin === 'x3' ? '×3' : '', r.todoActive.includes(w.id) ? 'Todo o Nada' : '', mult > 1 ? 'vuelta final doble' : ''].filter(Boolean).join(', ');
+    addPoints(s, w, base * mult, `(ganó tu carta${pairNote}${extra ? ` · ${extra}` : ''})`);
+    if (winnerPlay.comodin === 'soborno') { addPoints(s, judge, 1 * mult, '(elegiste la carta sobornada 💰)'); r.events.push(`${judge.name} aceptó el soborno de ${w.name}.`); r.bribe = 'accepted'; }
   }
   for (const pid of r.todoActive) {
-    if (!winnerPlay || winnerPlay.playerId !== pid) { addPoints(s, byId(s, pid), -1); r.events.push(`${nameOf(s, pid)} perdió el Todo o Nada (−1).`); }
+    if (!winnerPlay || winnerPlay.playerId !== pid) { addPoints(s, byId(s, pid), -1, '(perdiste el Todo o Nada)'); r.events.push(`${nameOf(s, pid)} perdió el Todo o Nada (−1).`); }
   }
   for (const [pid, playId] of Object.entries(r.apuestas)) {
-    if (winnerPlay && playId === winnerPlay.id) { addPoints(s, byId(s, pid), 1 * mult); r.events.push(`${nameOf(s, pid)} acertó su apuesta (+1).`); }
+    if (winnerPlay && playId === winnerPlay.id) { addPoints(s, byId(s, pid), 1 * mult, '(acertaste tu Apuesta)'); r.events.push(`${nameOf(s, pid)} acertó su apuesta (+1).`); }
     else r.events.push(`${nameOf(s, pid)} falló su apuesta.`);
   }
-  if (r.type === 'carrete') for (const pw of r.publicWinners) addPoints(s, byId(s, r.plays.find(p => p.id === pw)!.playerId), 0.5 * mult);
+  if (r.type === 'carrete') for (const pw of r.publicWinners) addPoints(s, byId(s, r.plays.find(p => p.id === pw)!.playerId), 0.5 * mult, '(tu foto fue la favorita del público)');
+  if (!r.bribe && r.plays.some(p => p.comodin === 'soborno')) r.bribe = 'rejected';
 
   // avisos privados: qué ha hecho cada comodín
   const won = (pid: string) => !!winnerPlay && winnerPlay.playerId === pid;
@@ -829,7 +892,7 @@ function finishRound(s: State, ctx: Ctx, winnerPlay: Play | null) {
     const partner = pair.find(x => x !== pid)!;
     const p = s.players.find(x => x.id === pid); if (!p || p.removed) continue;
     const ok = !!winnerPlay && pair.includes(winnerPlay.playerId);
-    notify(s, p, ctx, `💞 Puntos en pareja: tu pareja secreta era ${nameOf(s, partner)}. ${ok ? '¡Ganasteis y sumáis 2 cada uno!' : 'Esta vez no ganasteis.'}`, 'round', { good: ok });
+    notify(s, p, ctx, `💞 Puntos en pareja: tu pareja secreta era ${nameOf(s, partner)}. ${ok ? (r.pareja.by === winnerPlay!.playerId ? '¡Ganó la carta del que activó las parejas: +2 cada uno!' : '¡Ganó vuestra pareja: +1 para el compañero!') : 'Esta vez no ganasteis.'}`, 'round', { good: ok });
   }
   for (const [pid, playId] of Object.entries(r.apuestas)) notify(s, byId(s, pid), ctx, winnerPlay && playId === winnerPlay.id ? '🎲 Apuesta acertada: +1.' : '🎲 Apuesta fallada.', 'round', { good: !!winnerPlay && playId === winnerPlay.id });
   for (const pid of r.todoActive) notify(s, byId(s, pid), ctx, won(pid) ? 'Todo o Nada: ¡ganaste! +2.' : 'Todo o Nada: no ganaste, −1.', 'round', { good: won(pid) });
@@ -850,7 +913,8 @@ function finishRound(s: State, ctx: Ctx, winnerPlay: Play | null) {
   s.history.push(entry);
   for (const p of active(s)) {
     const g = r.gains[p.id] ?? 0;
-    notify(s, p, ctx, g > 0 ? `Ronda ${r.no}: +${g} ${g === 1 ? 'punto' : 'puntos'}.` : g < 0 ? `Ronda ${r.no}: ${g} punto(s).` : `Ronda ${r.no}: sin puntos.`, 'gain', { gain: g });
+    const lines = r.gainLog?.[p.id] ?? [];
+    notify(s, p, ctx, (g > 0 ? `Ronda ${r.no}: +${g} ${g === 1 ? 'punto' : 'puntos'}` : g < 0 ? `Ronda ${r.no}: ${g} punto(s)` : `Ronda ${r.no}: sin puntos`) + (lines.length ? ` — ${lines.join(' · ')}` : '.'), 'gain', { gain: g, lines });
   }
   s.phase = 'reveal';
 }
@@ -998,10 +1062,15 @@ export function publicView(s: State, ctx: Pick<Ctx, 'lex'>) {
       plays: showPlays ? r.order.map((pid, i) => {
         const p = playMap.get(pid)!;
         if (s.phase === 'judging' && i >= r.revealed) return { id: p.id, hidden: true as const, words: [] as { w: string; d: string; custom: boolean; id?: number }[], photo: undefined as string | undefined };
-        return { id: p.id, hidden: false as const, words: p.words.map(w => ({ w: w.custom ?? ctx.lex.words[w.wordId!].w, d: w.custom ? 'Escrita por un jugador' : ctx.lex.words[w.wordId!].d, custom: !!w.custom, id: w.wordId })), photo: p.photo };
+        return { id: p.id, hidden: false as const, words: p.words.map(w => ({ w: w.custom ?? ctx.lex.words[w.wordId!].w, d: w.custom ? (w.customDesc || 'Escrita por un jugador') : ctx.lex.words[w.wordId!].d, custom: !!w.custom, id: w.wordId })), photo: p.photo };
       }) : [],
       revealed: r.revealed, total: r.plays.length, playDeadline: r.playDeadline,
       discarded: r.discarded, debate: r.debate, mordaza: r.mordaza,
+      lawyers: (r.lawyers ?? []).filter(id => showPlays && (s.phase !== 'judging' || r.order.indexOf(id) < r.revealed)),
+      lawyerCount: new Set((r.lawyers ?? [])).size,
+      golpeArmed: !!r.golpeArmed,
+      bribe: r.plays.some(p => p.comodin === 'soborno'),
+      bribeOutcome: s.phase === 'reveal' ? (r.bribe ?? null) : null,
       winner: s.phase === 'reveal' || s.phase === 'vote' ? r.winner : null,
       publicWinners: s.phase === 'reveal' ? r.publicWinners : [],
       votesIn: Object.keys(r.votes).length,
@@ -1031,9 +1100,12 @@ export function privateView(s: State, pid: string, ctx: Pick<Ctx, 'lex'>) {
     comodines: p.comodines, pending: p.pending,
     notices: p.notices,
     isJudge,
-    adjOptions: r && (isJudge || p.comodines.includes('golpe')) && s.phase === 'adjective' && r.type === 'normal'
+    adjOptions: r && ((isJudge && !r.golpeArmed) || r.golpeArmed === p.id || (!r.golpeArmed && p.comodines.includes('golpe'))) && s.phase === 'adjective' && r.type === 'normal'
       ? r.adjOptions.map(i => ctx.lex.adjs[i]) : null,
     sobornos: isJudge && r && (s.phase === 'judging' || s.phase === 'vote') ? r.plays.filter(x => x.comodin === 'soborno').length : 0,
+    bribedPlays: isJudge && r && (s.phase === 'judging' || s.phase === 'vote') ? r.plays.filter(x => x.comodin === 'soborno').map(x => x.id) : [],
+    golpeArmed: !!p.pending.golpe,
+    golpeNow: !!r && r.golpeArmed === p.id && s.phase === 'adjective',
     myPlayId: myPlay?.id ?? null,
     myPlayIds: r ? r.plays.filter(x => x.playerId === p.id).map(x => x.id) : [],
     mustDiscard: !!r && s.phase === 'play' && r.judgeId === p.id && s.config.handMode === 'deplete' && r.type === 'normal' && !r.judgeDiscarded,

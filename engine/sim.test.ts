@@ -41,6 +41,10 @@ function run(seed: number, nPlayers: number, cfg: Partial<State['config']>) {
     if (s.report && s.report.accused !== me.id && s.report.votes[me.id] === undefined) { act(uid, { type: 'reportVote', yes: rng() < 0.8 }); continue; }
     for (const pr of pv.prompts) act(uid, { type: 'shield', promptId: pr.id, use: rng() < 0.5 });
     if (roll < 0.02) { act(uid, { type: 'tick' }); continue; }
+    if (roll < 0.04 && me.comodines.includes('golpe')) { if (act(uid, { type: 'armGolpe' })) stats.comodines.add('golpe-armado'); continue; }
+    if (roll < 0.06 && me.comodines.includes('abogado')) { if (act(uid, { type: 'lawyer' })) stats.comodines.add('abogado-tarde'); continue; }
+    if (roll < 0.07 && s.phase === 'judging' && r) { const v = s.players.find(p => !p.removed && p.id !== r.judgeId); if (v) act(r.judgeId === me.id ? uid : uids[0], { type: 'fine', playerId: v.id }); continue; }
+    if (roll < 0.09 && me.comodines.includes('nuevas') && me.hand.length) { if (act(uid, { type: 'tool', comodin: 'nuevas', handIndices: [0] })) stats.comodines.add('nuevas-cualquier-momento'); continue; }
     switch (s.phase) {
       case 'order': act(uid, { type: 'pickCard', card: Math.floor(rng() * s.orderPick!.cards.length) }); break;
       case 'roulette':
@@ -50,6 +54,7 @@ function run(seed: number, nPlayers: number, cfg: Partial<State['config']>) {
         break;
       case 'adjective':
         if (r!.type === 'carrete') { if (pv.isJudge) act(uid, { type: 'setPhrase', phrase: 'Tu peor foto' }); }
+        else if (pv.golpeNow) act(uid, { type: 'golpe', index: 0 });
         else if (pv.isJudge) { if (rng() < 0.7) act(uid, { type: 'chooseAdjective', index: Math.floor(rng() * 3) }); }
         else if (me.comodines.includes('golpe') && rng() < 0.3) act(uid, { type: 'golpe', index: 1 });
         break;

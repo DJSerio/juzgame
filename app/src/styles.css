@@ -547,3 +547,10 @@ h2 { font-size: 26px; line-height: 1.1; font-weight: 800; letter-spacing: -.01em
 .lg-games { display: grid; gap: 6px; margin-top: 8px; font-size: 13px; }
 .lg-game { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 10px; background: var(--felt); }
 .lg-game small { color: var(--mist); }
+
+.tool-hand { display: grid; gap: 6px; margin-bottom: 12px; max-height: 50vh; overflow: auto; }
+.tool-w { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 8px 12px; border-radius: 10px; background: var(--paper); color: var(--ink); border: 2px solid transparent; }
+.tool-w small { font-family: var(--type); font-size: 12px; opacity: .75; }
+.tool-w.on { border-color: var(--mustard); box-shadow: 0 0 0 3px rgba(242,183,5,.35); }
+.summary.why li { font-weight: 700; }
+.summary.why li.bad { color: #FF8A73; }

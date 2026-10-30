@@ -241,6 +241,23 @@ export function Adjective() {
     ) : <><Courtroom /><Waiting title="📸 Ronda de Carrete" text={`${nameOf(pub, r.judgeId)} está escribiendo la frase. Ve abriendo tu galería.`} /></>;
   }
   const wait = Math.ceil(((r.adjOpenAt ?? 0) - now) / 1000);
+  if (me.golpeNow && me.adjOptions) return (
+    <div>
+      <div className="golpe-panel">
+        <p><b>👑 ¡Tu Golpe de Estado!</b> Esta ronda eliges tú el adjetivo. Mira tus palabras y elige el que más te convenga. Nadie sabrá que has sido tú: disimula.</p>
+        <div className="stack">{me.adjOptions.map((a, i) => <AdjCard key={a.a} a={a.a} s={a.s} onClick={() => act({ type: 'golpe', index: i })} />)}</div>
+      </div>
+      <h2 className="h-sm">Tus palabras</h2>
+      <Hand cards={me.hand} selected={[]} onToggle={() => {}} readOnly />
+    </div>
+  );
+  if (r.golpeArmed) return (
+    <div>
+      <Courtroom />
+      <Waiting title="👑 ¡Golpe de Estado!" text={me.isJudge ? 'Su Señoría ha sido depuesta: esta ronda alguien elige el adjetivo por ti. Tú sigues juzgando.' : 'Su Señoría ha sido depuesta: alguien está eligiendo el adjetivo. ¿Quién habrá sido?'} />
+      {!me.isJudge && <><h2 className="h-sm">Tus palabras · ve pensando</h2><Hand cards={me.hand} selected={[]} onToggle={() => {}} readOnly /></>}
+    </div>
+  );
   if (me.isJudge) return (
     <div>
       <Courtroom />
@@ -309,6 +326,7 @@ export function Play() {
   const active = useActive(pub.roundNo);
   const [sel, setSel] = useState<number[]>([]);
   const [custom, setCustom] = useState('');
+  const [customDesc, setCustomDesc] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -339,6 +357,7 @@ export function Play() {
     <div>
       <Courtroom />
       {me.myPlayId && me.comodines.includes('espia') && !me.usedComodin && <SpyAfter />}
+      {me.myPlayId && me.comodines.includes('abogado') && !me.usedComodin && <div className="combo-row"><p><b>⚖️ Aún puedes contratar Abogado</b> para tu carta: solo las cartas con abogado podrán defenderse.</p><button className="cchip" onClick={() => act({ type: 'lawyer' })}><b>Usar Abogado</b><small>Se anuncia a todos al destapar</small></button></div>}
       <Waiting title={me.myPlayId ? 'Carta jugada' : 'Esta ronda no juegas'} text={me.myPlayId ? (me.usedComodin ? `Con ${cLabel(me.usedComodin)}. ` : '') + 'Esperando al resto…' : 'Esperando al resto…'} />
       <PlayedList />
     </div>
@@ -390,7 +409,10 @@ export function Play() {
           <button className="btn block" onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? 'Subiendo…' : photo ? 'Cambiar foto' : 'Elegir foto de la galería'}</button>
         </div>
       ) : active === 'escribe' ? (
-        <label className="field"><span>Tu palabra</span><input className="input" value={custom} maxLength={60} onChange={e => setCustom(e.target.value)} placeholder="La palabra perfecta" /></label>
+        <div className="stack">
+          <label className="field"><span>Tu palabra</span><input className="input" value={custom} maxLength={60} onChange={e => setCustom(e.target.value)} placeholder="La palabra perfecta" /></label>
+          <label className="field"><span>Su descripción (la frase graciosa)</span><input className="input" value={customDesc} maxLength={120} onChange={e => setCustomDesc(e.target.value)} placeholder="Ej.: Lo que dice Sergio a las 4 de la mañana" /></label>
+        </div>
       ) : (
         <Hand cards={me.hand} selected={sel} onToggle={toggle} />
       )}
@@ -399,7 +421,7 @@ export function Play() {
         {active === 'nuevas' ? <button className="btn primary" disabled={!sel.length} onClick={() => { act({ type: 'tool', comodin: 'nuevas', handIndices: sel }); setActive(null, pub.roundNo); }}>Cambiar {sel.length || ''} por nuevas</button>
           : active === 'cambio' ? <button className="btn primary" disabled={sel.length !== 1} onClick={() => { act({ type: 'tool', comodin: 'cambio', handIndex: sel[0] }); setActive(null, pub.roundNo); }}>Soltar esta carta</button>
           : active === 'espia' ? <button className="btn" onClick={() => setActive(null, pub.roundNo)}>Cancelar espía</button>
-          : <button className="btn primary" disabled={!ready || uploading} onClick={() => { act({ type: 'play', hand: sel, custom, photo: photo ?? undefined, comodin: active ?? undefined }); setActive(null, pub.roundNo); }}>
+          : <button className="btn primary" disabled={!ready || uploading} onClick={() => { act({ type: 'play', hand: sel, custom, customDesc, photo: photo ?? undefined, comodin: active ?? undefined }); setActive(null, pub.roundNo); }}>
               {active ? `Jugar con ${COMODIN[active].name}` : carrete ? 'Enviar foto' : sel.length ? `Jugar «${me.hand[sel[0]]?.w}»` : 'Toca una carta'}
             </button>}
       </div></div>
@@ -467,6 +489,7 @@ export function Judging() {
   const [apostando, setApostando] = useState(false);
   useToolEvent('apuesta', () => setApostando(true));
   const nowJ = useNow(500);
+  const [fining, setFining] = useState(false);
   const delib = Math.max(0, Math.ceil(((r.decideAt ?? 0) - nowJ) / 1000));
   const plays = r.plays;
   const allOpen = r.revealed >= r.total;
@@ -476,7 +499,9 @@ export function Judging() {
   return (
     <div>
       <Courtroom />
-      {r.mordaza && allOpen && <div className="banner warn">⚖️ Ley Mordaza: solo «{label(r.mordaza)}» puede defenderse.</div>}
+      {r.bribe && <div className="banner">💰 Hay un soborno sobre la mesa.{canJudge ? ' Verás la carta sobornada marcada con 💰: si la eliges, sumas +1… y todos sabrán que aceptaste.' : ' Prohibido hablar de ello.'}</div>}
+      {r.lawyerCount > 0 && <div className="banner warn">⚖️ {r.lawyers.length ? <>Solo {r.lawyers.length > 1 ? 'las cartas' : 'la carta'} {r.lawyers.map(id => `«${label(id)}»`).join(' y ')} {r.lawyers.length > 1 ? 'tienen' : 'tiene'} derecho a defenderse.</> : 'Hay una carta con abogado: cuando se destape, solo ella podrá defenderse.'} El resto, silencio o −1 punto. Tranquilos: aunque no convenza al juez, cualquiera puede ganar.</div>}
+      {!canJudge && me.myPlayId && me.comodines.includes('abogado') && !me.usedComodin && <button className="btn block" style={{ marginBottom: 10 }} onClick={() => act({ type: 'lawyer' })}>⚖️ Contratar Abogado para mi carta</button>}
       {r.debate && (
         <div className="banner">
           <p style={{ margin: '0 0 6px', fontWeight: 800 }}>Debate</p>
@@ -502,8 +527,8 @@ export function Judging() {
           const onClick = canJudge && allOpen ? () => {
             if (debatePick) setDebatePick(d => d!.includes(p.id) ? d!.filter(x => x !== p.id) : [...d!, p.id].slice(-3));
             else setFocus(p.id);
-          } : apostando && !mine ? () => { act({ type: 'apuesta', playId: p.id }); setApostando(false); } : undefined;
-          const tag = mine ? 'La tuya' : me.myApuesta === p.id ? 'Tu apuesta' : r.mordaza === p.id ? '⚖️' : undefined;
+          } : apostando && !mine && !p.hidden ? () => { act({ type: 'apuesta', playId: p.id }); setApostando(false); } : undefined;
+          const tag = mine ? 'La tuya' : me.myApuesta === p.id ? 'Tu apuesta' : me.bribedPlays.includes(p.id) ? '💰 Sobornada' : r.lawyers.includes(p.id) ? '⚖️ Abogado' : undefined;
           return carrete ? (
             <button key={p.id} className={`photo-card flipin${disc ? ' discarded' : ''}${inDebate ? ' selected' : ''}`} onClick={onClick}>
               {tag && <span className="tag">{tag}</span>}
@@ -516,7 +541,13 @@ export function Judging() {
         })}
       </div>
 
-      {canJudge && me.sobornos > 0 && !briberyShown && allOpen && (
+      {fining && (
+        <Sheet title="🔨 Multar −1" onClose={() => setFining(false)}>
+          <p className="muted" style={{ marginTop: 0 }}>Para quien hable sin tener abogado (o se le escape algo del soborno). Le resta 1 punto.</p>
+          <div className="stack">{pub.players.filter(p => !p.removed && p.id !== r.judgeId).map(p => <button key={p.id} className="btn" onClick={() => { act({ type: 'fine', playerId: p.id }); setFining(false); }}>Multar a {p.name}</button>)}</div>
+        </Sheet>
+      )}
+      {false && canJudge && me.sobornos > 0 && !briberyShown && allOpen && (
         <Sheet title="🤫">
           <p style={{ fontSize: 20 }}>Alguien te quiere sobornar. No digas nada, puede que te interese…</p>
           <p className="muted">Si eliges la carta sobornada, tú también sumas 1 punto. No sabrás cuál es.</p>
@@ -541,7 +572,8 @@ export function Judging() {
           <button className="btn primary" disabled={debatePick.length < 2} onClick={() => { act({ type: 'debate', playIds: debatePick }); setDebatePick(null); }}>Empezar debate</button>
         </>}
         {apostando && <button className="btn ghost" onClick={() => setApostando(false)}>Cancelar apuesta</button>}
-        {!canJudge && !apostando && allOpen && me.comodines.includes('apuesta') && !me.myApuesta && !me.usedComodin && <button className="btn primary" onClick={() => setApostando(true)}>🎲 Usar Apuesta: ¿cuál ganará?</button>}
+        {!canJudge && !apostando && r.revealed > 0 && me.comodines.includes('apuesta') && !me.myApuesta && !me.usedComodin && <button className="btn primary" onClick={() => setApostando(true)}>🎲 Usar Apuesta: ¿cuál ganará?</button>}
+        {canJudge && <button className="btn ghost" onClick={() => setFining(true)}>🔨 Multar −1</button>}
         {!me.isJudge && me.isHost && !DEMO && <button className="btn ghost" onClick={() => setActAsHost(a => !a)}>{actAsHost ? 'Dejar de actuar como juez' : 'Actuar como juez'}</button>}
       </div></div>
     </div>
@@ -601,8 +633,10 @@ export function Reveal() {
         <p className="muted" style={{ margin: 0 }}>Solo lo ves tú</p>
         <p className="gain" style={{ color: gain > 0 ? 'var(--mustard)' : gain < 0 ? '#FF8A73' : 'var(--mist)' }}>{gain > 0 ? `+${gain}` : gain}</p>
         <p style={{ margin: 0 }}>{gain > 0 ? '¡Puntos para ti! Disimula.' : gain < 0 ? 'Mala suerte. Que no se note.' : 'Esta vez no.'}</p>
+        {((notes[gi]?.data as { lines?: string[] } | undefined)?.lines ?? []).length > 0 && <ul className="summary why">{(notes[gi]!.data as { lines: string[] }).lines.map((l, i) => <li key={i} className={l.startsWith('-') ? 'bad' : ''}>{l}</li>)}</ul>}
         {summary.length > 0 && <ul className="summary">{summary.map(n => <li key={n.id} className={(n.data as { good?: boolean } | undefined)?.good === false ? 'bad' : ''}>{n.text}</li>)}</ul>}
       </div>
+      {r.bribeOutcome && <div className={`banner ${r.bribeOutcome === 'accepted' ? 'warn' : ''}`}>{r.bribeOutcome === 'accepted' ? '💰 ⚖️ Su Señoría aceptó el soborno.' : '💰 Había un soborno… y Su Señoría lo rechazó. Juez honrado.'}</div>}
       {(me.isJudge || me.isHost) && <div className="dock"><div className="inner"><button className="btn primary" onClick={() => act({ type: 'next' })}>Siguiente ronda</button></div></div>}
     </div>
   );
